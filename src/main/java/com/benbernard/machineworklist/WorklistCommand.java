@@ -35,6 +35,12 @@ public class WorklistCommand extends CommandBase {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || ItemPanels.bookmarkPanel == null) return;
         BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
+        if (grid.size() == 0) {
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "Open your inventory once to load NEI bookmarks, then select an autocrafting group."));
+            return;
+        }
         Set<Integer> groups = new TreeSet<>();
         for (int i = 0; i < grid.size(); i++) {
             int group = grid.getBookmarkItem(i).groupId;

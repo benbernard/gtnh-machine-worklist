@@ -141,6 +141,10 @@ public class WorklistScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        // Empty lists must establish the same render state as lists containing item icons.
+        // Otherwise depth left by the previous GUI can hide updated controls and text.
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xf5101723);
         line(selected == null ? "MACHINE WORKLIST" : selected.machine, 14, 14, width - 90, 0x67dbc4);
         String subtitle = selected == null ? "NEI group " + plan.groupId + " / Inventory + hotbar"
@@ -168,6 +172,21 @@ public class WorklistScreen extends GuiScreen {
             width - 28,
             0xa9b7cb);
         super.drawScreen(mouseX, mouseY, partialTicks);
+        drawItemTooltip(mouseX, mouseY);
+    }
+
+    private void drawItemTooltip(int x, int y) {
+        if (error != null || x < 12 || x >= width - 12 || y < TOP || y >= TOP + visibleRows() * rowHeight()) return;
+        int index = scroll + (y - TOP) / rowHeight();
+        if (index >= rowCount()) return;
+        BookmarkItem item = null;
+        if (selected != null) {
+            if (index < selected.outputs.size()) item = selected.outputs.get(index);
+            else if (index < selected.outputs.size() + selected.inputs.size())
+                item = selected.inputs.get(index - selected.outputs.size());
+        } else if (showMissing) item = plan.missingMaterials.get(index);
+        else if (x < 38) item = steps.get(index).outputs.get(0);
+        if (item != null) renderToolTip(item.itemStack, x, y);
     }
 
     private void drawStep(WorklistPlan.Step step, int y) {

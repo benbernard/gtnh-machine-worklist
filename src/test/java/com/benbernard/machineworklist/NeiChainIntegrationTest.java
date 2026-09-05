@@ -13,6 +13,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import codechicken.nei.bookmark.BookmarkItem;
 import codechicken.nei.bookmark.BookmarkItem.BookmarkItemType;
@@ -20,7 +22,29 @@ import codechicken.nei.recipe.Recipe.RecipeId;
 import codechicken.nei.recipe.chain.RecipeChainMath;
 
 /** Exercises the actual pinned NEI engine, using vanilla items as deterministic recipe fixtures. */
+@RunWith(Parameterized.class)
 public class NeiChainIntegrationTest {
+
+    private final String fixtureName;
+
+    public NeiChainIntegrationTest(String fixtureName) {
+        this.fixtureName = fixtureName;
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static List<String> fixtures() {
+        return Arrays.asList(
+            "existingIntermediatesReduceUpstreamMachineBatches",
+            "finishedTargetEliminatesItsEntireChain",
+            "sharedBranchesSpendInventoryOnce",
+            "plainBookmarksDoNotInventStock",
+            "repeatedCalculationsDoNotMutateInventoryOrTargets",
+            "coproductsComeFromTheSameBatches",
+            "multipleTargetsShareBatchSurplus",
+            "fluidContainersUseMillibucketsAndPreserveRealInventory",
+            "multipleInventoryStacksAreAllAvailable",
+            "deepChainStopsAtOwnedIntermediate");
+    }
 
     @Test
     public void runInForgeClassLoader() throws Exception {
@@ -49,23 +73,16 @@ public class NeiChainIntegrationTest {
                     new Object[] { new Object[] { "7", "99", "40", "1614", "1.7.10", "9.05",
                         new java.io.File("build/test-game"), Collections.emptyList() } });
             Class<?> fixture = loader.loadClass(getClass().getName());
-            fixture.getMethod("executeFixtures")
-                .invoke(null);
+            fixture.getMethod("executeFixture", String.class)
+                .invoke(null, fixtureName);
         }
     }
 
-    public static void executeFixtures() {
+    public static void executeFixture(String fixtureName) throws Exception {
         Bootstrap.func_151354_b();
-        NeiChainIntegrationTest fixture = new NeiChainIntegrationTest();
-        fixture.existingIntermediatesReduceUpstreamMachineBatches();
-        fixture.finishedTargetEliminatesItsEntireChain();
-        fixture.sharedBranchesSpendInventoryOnce();
-        fixture.plainBookmarksDoNotInventStock();
-        fixture.repeatedCalculationsDoNotMutateInventoryOrTargets();
-        fixture.coproductsComeFromTheSameBatches();
-        fixture.multipleTargetsShareBatchSurplus();
-        fixture.fluidContainersUseMillibucketsAndPreserveRealInventory();
-        fixture.multipleInventoryStacksAreAllAvailable();
+        NeiChainIntegrationTest fixture = new NeiChainIntegrationTest(fixtureName);
+        NeiChainIntegrationTest.class.getMethod(fixtureName)
+            .invoke(fixture);
     }
 
     public void existingIntermediatesReduceUpstreamMachineBatches() {
@@ -179,6 +196,36 @@ public class NeiChainIntegrationTest {
         assertEquals(0, runs(new WorklistPlan(1, chain).remainingChain(inventory), target));
         assertEquals(64, inventory[0].stackSize);
         assertEquals(36, inventory[1].stackSize);
+    }
+
+    public void deepChainStopsAtOwnedIntermediate() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        List<RecipeId> ids = new ArrayList<>();
+        for (int index = 1; index <= 80; index++) {
+            ItemStack output = new ItemStack(Items.dye, index == 80 ? 17 : 1, index);
+            ItemStack input = new ItemStack(Items.dye, 1, index - 1);
+            RecipeId id = RecipeId.of(output, "depth-" + index, Arrays.asList(input));
+            ids.add(id);
+            chain.add(
+                BookmarkItem.of(
+                    1,
+                    output,
+                    1,
+                    id,
+                    BookmarkItemType.RESULT,
+                    BookmarkItem.generatePermutations(output, (codechicken.nei.recipe.Recipe) null)));
+            chain.add(
+                BookmarkItem.of(
+                    1,
+                    input,
+                    1,
+                    id,
+                    BookmarkItemType.INGREDIENT,
+                    BookmarkItem.generatePermutations(input, (codechicken.nei.recipe.Recipe) null)));
+        }
+        RecipeChainMath math = new WorklistPlan(1, chain)
+            .remainingChain(new ItemStack[] { new ItemStack(Items.dye, 17, 40) });
+        for (int index = 0; index < 80; index++) assertEquals(index < 40 ? 0 : 17, runs(math, ids.get(index)));
     }
 
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,
