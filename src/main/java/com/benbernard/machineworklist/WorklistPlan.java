@@ -149,7 +149,7 @@ public final class WorklistPlan {
             List<BatchReadiness.Ingredient> requirements = new ArrayList<>();
             for (BookmarkItem input : step.inputs) {
                 int[] matches = java.util.stream.IntStream.range(0, stockItems.size())
-                    .filter(index -> input.containsItems(stockItems.get(index)))
+                    .filter(index -> matchesInput(input, stockItems.get(index)))
                     .toArray();
                 requirements.add(new BatchReadiness.Ingredient(Math.max(1, input.factor), input.factor == 0, matches));
             }
@@ -172,7 +172,7 @@ public final class WorklistPlan {
                 boolean owned = false;
                 for (ItemStack stack : inventory) {
                     if (stack != null && stack.stackSize > 0
-                        && input.containsItems(BookmarkItem.of(groupId, stack.copy()))) {
+                        && matchesInput(input, BookmarkItem.of(groupId, stack.copy()))) {
                         owned = true;
                         break;
                     }
@@ -190,6 +190,19 @@ public final class WorklistPlan {
             else existing.amount = Math.addExact(existing.amount, missing);
         }
         return new ArrayList<>(shortages.values());
+    }
+
+    static boolean matchesInput(BookmarkItem requirement, BookmarkItem supply) {
+        if (requirement.factor != 0) return requirement.containsItems(supply);
+        // NEI's fuzzy GUID cache is directional and may merge an untagged stack with
+        // a tagged requirement. Reusable machine settings must match the recipe template.
+        for (ItemStack template : requirement.permutations.values()) {
+            if (codechicken.nei.NEIServerUtils.areStacksSameTypeCrafting(template, supply.itemStack)
+                && codechicken.nei.util.NBTHelper
+                    .matchTag(template.getTagCompound(), supply.itemStack.getTagCompound()))
+                return true;
+        }
+        return false;
     }
 
     public static final class Step {

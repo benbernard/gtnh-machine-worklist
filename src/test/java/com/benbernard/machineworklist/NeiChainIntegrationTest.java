@@ -45,7 +45,8 @@ public class NeiChainIntegrationTest {
             "multipleInventoryStacksAreAllAvailable",
             "deepChainStopsAtOwnedIntermediate",
             "missingReusableToolsAreCountedOnceAndDisappearWhenOwned",
-            "cyclicRecipesLeaveAFiniteExternalSeedRequirement");
+            "cyclicRecipesLeaveAFiniteExternalSeedRequirement",
+            "reusableConfigurationMustMatchMetadataAndNbt");
     }
 
     @Test
@@ -284,6 +285,46 @@ public class NeiChainIntegrationTest {
             0,
             plan.missingInputs(plan.remainingChain(finished), finished)
                 .size());
+    }
+
+    public void reusableConfigurationMustMatchMetadataAndNbt() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        ItemStack configured = new ItemStack(Items.dye, 0, 1);
+        net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+        tag.setString("configuration", "required");
+        configured.setTagCompound(tag);
+        recipe(chain, "configured-machine", Items.diamond, 1, 5, new ItemStack(Items.iron_ingot, 1), configured);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        ItemStack[] stock = { new ItemStack(Items.iron_ingot, 5), new ItemStack(Items.dye, 1, 2) };
+        assertEquals(
+            1,
+            plan.missingInputs(plan.remainingChain(stock), stock)
+                .size());
+        stock[1] = new ItemStack(Items.dye, 1, 1);
+        assertEquals(
+            1,
+            plan.missingInputs(plan.remainingChain(stock), stock)
+                .size());
+        stock[1] = configured.copy();
+        stock[1].stackSize = 1;
+        stock[1].getTagCompound()
+            .setString("configuration", "wrong");
+        assertEquals(
+            1,
+            plan.missingInputs(plan.remainingChain(stock), stock)
+                .size());
+        stock[1] = configured.copy();
+        stock[1].stackSize = 1;
+        stock[1].getTagCompound()
+            .setString("additionalInformation", "allowed");
+        assertEquals(
+            0,
+            plan.missingInputs(plan.remainingChain(stock), stock)
+                .size());
+        assertEquals(
+            "required",
+            stock[1].getTagCompound()
+                .getString("configuration"));
     }
 
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,
