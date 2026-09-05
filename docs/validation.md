@@ -20,10 +20,17 @@ Testing uses a separate Prism instance and a disposable local world. No producti
 - Opening the recipe reaches the NEI bending-machine recipe; Escape returns to the worklist.
 - Command opening works after NEI bookmarks have loaded.
 
+### CI artifact inventory checks (2026-09-05)
+
+Rechecked the installed `8b60fda` CI artifact in the disposable New World, using saved group 16. With no materials, the machine queue showed 16 assembler runs, 164 steel-plate bending runs, and 32 wrought-iron-plate bending runs. Adding 64 steel plates reduced only the steel bending quantity to 100. Adding 64 steel ingots kept 100 runs remaining and readiness at zero without the circuit. Adding one programmed circuit with configuration 1 made exactly 64 steel bending runs ready and sorted that operation first.
+
+The test player subsequently died to a stray while the screen was open. The worklist detected the lost inventory and returned to 164 steel bending runs, but the death screen was only visible after closing the worklist. Further local testing should use a protected creative player. Automated pointer movement is currently unreliable in both the worklist and Minecraft's native respawn menu; button/filter checks are not recorded as passing. Keyboard navigation and client commands worked.
+
 ## Outstanding checks
 
 - Recheck empty-list rendering, tooltips, scroll indicators, and recipe notes after installing the latest build.
-- Verify in-game inventory changes reduce the expected machine batches and change readiness.
+- Broaden inventory-change checks beyond the verified steam-oven plate/ingot/circuit sequence.
+- Check death handling while the worklist is open.
 - Validate larger actual GTNH groups, fluids, probabilistic outputs, reusable tools, cycles and unavailable handlers.
 - Check smaller screen layouts and scrolling.
 - Validate a multiplayer connection with no server counterpart.

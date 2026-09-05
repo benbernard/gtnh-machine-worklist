@@ -124,6 +124,12 @@ public class WorklistScreen extends GuiScreen {
 
     @Override
     public void updateScreen() {
+        if (mc.thePlayer == null || mc.thePlayer.isDead || mc.thePlayer.getHealth() <= 0) {
+            // Let Minecraft select its death/disconnection screen rather than retaining
+            // a worklist (or restoring an inventory screen) for a dead player.
+            mc.displayGuiScreen(null);
+            return;
+        }
         if (++ticks % 10 == 0 && mc.thePlayer != null && inventoryChanged()) {
             refresh();
             buttons();
