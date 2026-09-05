@@ -31,9 +31,7 @@ public final class WorklistPlan {
         this.groupId = groupId;
         this.source = new ArrayList<>();
         for (BookmarkItem item : source) {
-            BookmarkItem copy = item.copy();
-            copy.itemStack = item.itemStack.copy();
-            this.source.add(copy);
+            this.source.add(new MatchingBookmarkItem(item));
         }
     }
 
@@ -58,7 +56,7 @@ public final class WorklistPlan {
         Map<BookmarkItem, BookmarkItem> supplies = new LinkedHashMap<>();
         for (ItemStack stack : inventory) {
             if (stack == null || stack.stackSize <= 0) continue;
-            BookmarkItem item = BookmarkItem.of(groupId, stack.copy());
+            BookmarkItem item = new MatchingBookmarkItem(BookmarkItem.of(groupId, stack.copy()));
             BookmarkItem existing = supplies.get(item);
             if (existing == null) supplies.put(item, item);
             else existing.amount = Math.addExact(existing.amount, item.amount);
@@ -193,16 +191,7 @@ public final class WorklistPlan {
     }
 
     static boolean matchesInput(BookmarkItem requirement, BookmarkItem supply) {
-        if (requirement.factor != 0) return requirement.containsItems(supply);
-        // NEI's fuzzy GUID cache is directional and may merge an untagged stack with
-        // a tagged requirement. Reusable machine settings must match the recipe template.
-        for (ItemStack template : requirement.permutations.values()) {
-            if (codechicken.nei.NEIServerUtils.areStacksSameTypeCrafting(template, supply.itemStack)
-                && codechicken.nei.util.NBTHelper
-                    .matchTag(template.getTagCompound(), supply.itemStack.getTagCompound()))
-                return true;
-        }
-        return false;
+        return MatchingBookmarkItem.matches(requirement, supply);
     }
 
     public static final class Step {

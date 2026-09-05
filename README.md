@@ -4,7 +4,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Under development. The Windows build and 20 automated tests pass. In GTNH 2.8.4, the worklist opens from a saved NEI group, displays machine batches and reusable inputs, and opens the selected machine recipe in NEI. Multiplayer and Linux/macOS builds still require validation.
+Under development. The Windows build and 21 automated tests pass. In GTNH 2.8.4, the worklist opens from a saved NEI group, displays machine batches and reusable inputs, and opens the selected machine recipe in NEI. Multiplayer and Linux/macOS builds still require validation.
 
 ## Use
 

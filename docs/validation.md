@@ -2,9 +2,9 @@
 
 ## Automated checks
 
-Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 20 tests, no failures or skips.
+Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 21 tests, no failures or skips.
 
-Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Thirteen integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, cyclic recipes requiring external starting material, and reusable ingredients with required metadata/NBT configuration.
+Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Fourteen integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, cyclic recipes requiring external starting material, and consumed and reusable ingredients with required metadata/NBT configuration.
 
 ## Live GTNH 2.8.4 check
 

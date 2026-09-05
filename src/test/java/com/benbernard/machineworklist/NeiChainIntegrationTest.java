@@ -46,7 +46,8 @@ public class NeiChainIntegrationTest {
             "deepChainStopsAtOwnedIntermediate",
             "missingReusableToolsAreCountedOnceAndDisappearWhenOwned",
             "cyclicRecipesLeaveAFiniteExternalSeedRequirement",
-            "reusableConfigurationMustMatchMetadataAndNbt");
+            "reusableConfigurationMustMatchMetadataAndNbt",
+            "consumedConfigurationCannotBeReplacedByUntaggedStock");
     }
 
     @Test
@@ -325,6 +326,26 @@ public class NeiChainIntegrationTest {
             "required",
             stock[1].getTagCompound()
                 .getString("configuration"));
+    }
+
+    public void consumedConfigurationCannotBeReplacedByUntaggedStock() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        ItemStack required = new ItemStack(Items.gold_ingot, 1);
+        net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+        tag.setString("configuration", "required");
+        required.setTagCompound(tag);
+        recipe(chain, "configured-consumer", Items.diamond, 1, 5, required);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        ItemStack[] stock = { new ItemStack(Items.gold_ingot, 5) };
+        List<BookmarkItem> missing = plan.missingInputs(plan.remainingChain(stock), stock);
+        assertEquals(1, missing.size());
+        assertEquals(5, missing.get(0).amount);
+        stock[0] = required.copy();
+        stock[0].stackSize = 5;
+        assertEquals(
+            0,
+            plan.missingInputs(plan.remainingChain(stock), stock)
+                .size());
     }
 
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,
