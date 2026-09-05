@@ -1,0 +1,11 @@
+[
+  {
+    "modid": "machineworklist",
+    "name": "GTNH Machine Worklist",
+    "description": "Inventory-aware machine work lists from NEI autocrafting groups.",
+    "version": "${modVersion}",
+    "mcversion": "1.7.10",
+    "url": "https://github.com/benbernard/gtnh-machine-worklist",
+    "authorList": ["Ben Bernard"]
+  }
+]
