@@ -4,7 +4,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Under development. The Windows build and 17 automated tests pass. In GTNH 2.8.4, the worklist opens from a saved NEI group, displays machine batches and reusable inputs, and opens the selected machine recipe in NEI. Multiplayer and Linux/macOS builds still require validation.
+Under development. The Windows build and 19 automated tests pass. In GTNH 2.8.4, the worklist opens from a saved NEI group, displays machine batches and reusable inputs, and opens the selected machine recipe in NEI. Multiplayer and Linux/macOS builds still require validation.
 
 ## Use
 
@@ -12,9 +12,11 @@ Install the release JAR in a separate GTNH 2.8.4 instance's `mods` directory. Do
 
 Open inventory, hover an existing NEI autocrafting group, and press **F10**. The key can be changed in Minecraft's Controls settings. Alternatively, after opening inventory once, use `/machineworklist` to list group numbers and `/machineworklist 16` to open one.
 
-The default view lists machine operations still needed after accounting for inventory and hotbar. **All steps** includes crafting-table operations. Click a row to inspect full batch inputs and outputs, then **Open NEI recipe** to see the recipe's machine tier and settings. Escape returns to the previous view. **Missing raw** lists outstanding external ingredients. Scroll to see more rows.
+The default view lists machine operations still needed after accounting for inventory and hotbar. **All steps** includes crafting-table operations. Click a row to inspect full batch inputs and outputs, then **Open NEI recipe** to see the recipe's machine tier and settings. Escape returns to the previous view. **Missing inputs** lists outstanding external ingredients and missing reusable tools. Scroll to see more rows.
 
 Ready counts are evaluated separately for each operation; two ready operations may compete for the same stock. The remaining chain itself allocates inventory globally. Chests, machine inventories, and network storage are not scanned. Plans capture the selected bookmark recipes when opened; reopen after changing the NEI group.
+
+Recipe notes flag GregTech chance outputs and matching recipes that NEI leaves unlinked. Chance-output quantities assume success and may need repeated batches. Cycles use NEI's external-input boundary and require starting material; the worklist does not optimize a recycling loop.
 
 See [validation notes](docs/validation.md) for tested cases and outstanding checks.
 

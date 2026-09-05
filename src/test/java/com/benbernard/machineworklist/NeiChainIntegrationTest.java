@@ -43,7 +43,9 @@ public class NeiChainIntegrationTest {
             "multipleTargetsShareBatchSurplus",
             "fluidContainersUseMillibucketsAndPreserveRealInventory",
             "multipleInventoryStacksAreAllAvailable",
-            "deepChainStopsAtOwnedIntermediate");
+            "deepChainStopsAtOwnedIntermediate",
+            "missingReusableToolsAreCountedOnceAndDisappearWhenOwned",
+            "cyclicRecipesLeaveAFiniteExternalSeedRequirement");
     }
 
     @Test
@@ -226,6 +228,62 @@ public class NeiChainIntegrationTest {
         RecipeChainMath math = new WorklistPlan(1, chain)
             .remainingChain(new ItemStack[] { new ItemStack(Items.dye, 17, 40) });
         for (int index = 0; index < 80; index++) assertEquals(index < 40 ? 0 : 17, runs(math, ids.get(index)));
+    }
+
+    public void missingReusableToolsAreCountedOnceAndDisappearWhenOwned() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        recipe(
+            chain,
+            "press-one",
+            Items.diamond,
+            1,
+            10,
+            new ItemStack(Items.iron_ingot, 1),
+            new ItemStack(Items.stick, 0));
+        recipe(
+            chain,
+            "press-two",
+            Items.emerald,
+            1,
+            12,
+            new ItemStack(Items.iron_ingot, 1),
+            new ItemStack(Items.stick, 0));
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        ItemStack[] rawOnly = { new ItemStack(Items.iron_ingot, 22) };
+        List<BookmarkItem> missing = plan.missingInputs(plan.remainingChain(rawOnly), rawOnly);
+        assertEquals(1, missing.size());
+        assertEquals(Items.stick, missing.get(0).itemStack.getItem());
+        assertEquals(1, missing.get(0).amount);
+        assertEquals(0, missing.get(0).factor);
+        ItemStack[] stocked = { new ItemStack(Items.iron_ingot, 22), new ItemStack(Items.stick, 1) };
+        assertEquals(
+            0,
+            plan.missingInputs(plan.remainingChain(stocked), stocked)
+                .size());
+        ItemStack[] finished = { new ItemStack(Items.diamond, 10), new ItemStack(Items.emerald, 12) };
+        assertEquals(
+            0,
+            plan.missingInputs(plan.remainingChain(finished), finished)
+                .size());
+    }
+
+    public void cyclicRecipesLeaveAFiniteExternalSeedRequirement() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        recipe(chain, "cycle-a", Items.gold_ingot, 2, 1, Items.redstone, 1);
+        recipe(chain, "cycle-b", Items.redstone, 1, 1, Items.gold_ingot, 1);
+        RecipeId target = recipe(chain, "target", Items.diamond, 1, 8, Items.gold_ingot, 1);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        ItemStack[] empty = new ItemStack[0];
+        RecipeChainMath math = plan.remainingChain(empty);
+        assertEquals(8, runs(math, target));
+        List<BookmarkItem> missing = plan.missingInputs(math, empty);
+        org.junit.Assert.assertFalse("A cycle cannot bootstrap with no stock", missing.isEmpty());
+        for (BookmarkItem item : missing) org.junit.Assert.assertTrue(item.amount > 0 && item.amount <= 8);
+        ItemStack[] finished = { new ItemStack(Items.diamond, 8) };
+        assertEquals(
+            0,
+            plan.missingInputs(plan.remainingChain(finished), finished)
+                .size());
     }
 
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,

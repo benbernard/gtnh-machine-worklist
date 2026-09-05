@@ -55,7 +55,7 @@ public class WorklistScreen extends GuiScreen {
         } else {
             buttonList.add(new GuiButton(1, 12, 42, 94, 20, showCrafting ? "All steps" : "Machines"));
             buttonList.add(new GuiButton(2, 110, 42, 94, 20, readyOnly ? "Ready only" : "All statuses"));
-            buttonList.add(new GuiButton(3, 208, 42, 94, 20, showMissing ? "Work queue" : "Missing raw"));
+            buttonList.add(new GuiButton(3, 208, 42, 94, 20, showMissing ? "Work queue" : "Missing inputs"));
         }
     }
 
@@ -96,6 +96,14 @@ public class WorklistScreen extends GuiScreen {
     }
 
     private int rowHeight() {
+        if (selected != null) {
+            int result = 32;
+            for (String note : selected.notes) result = Math.max(
+                result,
+                fontRendererObj.listFormattedStringToWidth(note, Math.max(1, width - 40))
+                    .size() * fontRendererObj.FONT_HEIGHT + 8);
+            return result;
+        }
         return selected == null && !showMissing ? ROW : 32;
     }
 
@@ -104,7 +112,9 @@ public class WorklistScreen extends GuiScreen {
     }
 
     private int rowCount() {
-        if (selected != null) return selected.outputs.size() + selected.inputs.size() + selected.dependencies.size();
+        if (selected != null) return selected.outputs.size() + selected.inputs.size()
+            + selected.dependencies.size()
+            + selected.notes.size();
         return showMissing ? plan.missingMaterials.size() : steps.size();
     }
 
@@ -152,17 +162,38 @@ public class WorklistScreen extends GuiScreen {
         line(subtitle, 14, 28, width - 28, 0xa9b7cb);
         if (error != null) fontRendererObj.drawSplitString(error, 14, TOP, width - 28, 0xff8989);
         else if (rowCount() == 0) line(
-            showMissing ? "No missing raw materials in this chain." : "No remaining steps match this view.",
+            showMissing ? "No missing external inputs or tools in this chain." : "No remaining steps match this view.",
             14,
             TOP,
             width - 28,
             0x67dbc4);
         else for (int index = scroll; index < Math.min(rowCount(), scroll + visibleRows()); index++) {
             int y = TOP + (index - scroll) * rowHeight();
-            drawRect(12, y, width - 12, y + rowHeight() - 4, 0xff202d40);
+            boolean hovered = mouseX >= 12 && mouseX < width - 12 && mouseY >= y && mouseY < y + rowHeight() - 4;
+            drawRect(12, y, width - 12, y + rowHeight() - 4, hovered ? 0xff293b52 : 0xff202d40);
             if (selected != null) drawDetail(index, y);
-            else if (showMissing) drawMaterial(plan.missingMaterials.get(index), "Missing: ", y, 0xe9bd72);
-            else drawStep(steps.get(index), y);
+            else if (showMissing) {
+                BookmarkItem item = plan.missingMaterials.get(index);
+                drawMaterial(item, item.factor == 0 ? "Reusable missing: " : "Missing: ", y, 0xe9bd72);
+            } else drawStep(steps.get(index), y);
+        }
+        if (error == null && rowCount() > visibleRows()) {
+            int track = visibleRows() * rowHeight() - 4;
+            int thumb = Math.max(8, track * visibleRows() / rowCount());
+            int offset = (track - thumb) * scroll / (rowCount() - visibleRows());
+            drawRect(width - 8, TOP, width - 4, TOP + track, 0xff202d40);
+            drawRect(width - 8, TOP + offset, width - 4, TOP + offset + thumb, 0xff67dbc4);
+            line(
+                "Rows " + (scroll + 1)
+                    + "-"
+                    + Math.min(rowCount(), scroll + visibleRows())
+                    + " of "
+                    + rowCount()
+                    + " / scroll for more",
+                14,
+                height - 30,
+                width - 28,
+                0xa9b7cb);
         }
         line(
             selected == null ? "Click a step for inputs. Ready counts apply to each step separately."
@@ -201,6 +232,7 @@ public class WorklistScreen extends GuiScreen {
         String status = !step.recipeAvailable ? "Recipe unavailable in NEI"
             : step.readyRuns > 0 ? "READY: " + step.readyRuns + " runs"
                 : "WAITING: " + step.dependencies.size() + " upstream steps / check inputs";
+        if (!step.notes.isEmpty()) status = "CHECK RECIPE NOTES / " + status;
         line(status, 18, y + 39, width - 40, step.readyRuns > 0 ? 0x67dbc4 : 0xe9bd72);
     }
 
@@ -217,7 +249,7 @@ public class WorklistScreen extends GuiScreen {
                 icon(item.itemStack, 18, y + 5);
                 line("Reusable: " + item.itemStack.getDisplayName(), 40, y + 9, width - 60, 0xe9bd72);
             } else drawMaterial(item, "Input: ", y, 0xffffff);
-        } else {
+        } else if (index < selected.outputs.size() + selected.inputs.size() + selected.dependencies.size()) {
             int dependency = index - selected.outputs.size() - selected.inputs.size();
             line(
                 "Upstream: " + selected.dependencies.get(dependency)
@@ -226,6 +258,9 @@ public class WorklistScreen extends GuiScreen {
                 y + 9,
                 width - 40,
                 0xa9b7cb);
+        } else {
+            int note = index - selected.outputs.size() - selected.inputs.size() - selected.dependencies.size();
+            fontRendererObj.drawSplitString(selected.notes.get(note), 18, y + 3, width - 40, 0xe9bd72);
         }
     }
 

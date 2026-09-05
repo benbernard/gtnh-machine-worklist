@@ -110,17 +110,7 @@ public final class WorklistPlan {
     public List<Step> calculate(ItemStack[] inventory) {
         RecipeChainMath math = remainingChain(inventory);
         missingMaterials.clear();
-        Map<String, BookmarkItem> shortages = new LinkedHashMap<>();
-        for (BookmarkItem input : math.recipeIngredients) {
-            if (math.preferredItems.containsKey(input)) continue;
-            long missing = math.requiredAmount.getOrDefault(input, 0L);
-            if (missing <= 0) continue;
-            String key = codechicken.nei.recipe.StackInfo.getItemStackGUID(input.itemStack);
-            BookmarkItem existing = shortages.get(key);
-            if (existing == null) shortages.put(key, input.copyWithAmount(missing));
-            else existing.amount = Math.addExact(existing.amount, missing);
-        }
-        missingMaterials.addAll(shortages.values());
+        missingMaterials.addAll(missingInputs(math, inventory));
         Map<RecipeId, Step> steps = new LinkedHashMap<>();
         for (BookmarkItem result : math.recipeResults) {
             if (result.factor <= 0 || result.amount <= 0) continue;
@@ -135,6 +125,16 @@ public final class WorklistPlan {
             BookmarkItem producer = math.preferredItems.get(input);
             if (producer != null && steps.containsKey(producer.recipeId) && !producer.recipeId.equals(step.id)) {
                 if (!step.dependencies.contains(producer.recipeId)) step.dependencies.add(producer.recipeId);
+            }
+            if (producer == null && input.factor > 0) {
+                for (BookmarkItem candidate : math.recipeResults) {
+                    if (candidate.factor > 0 && candidate.containsItems(input)) {
+                        step.notes.add(
+                            "External supply needed for " + input.itemStack.getDisplayName()
+                                + "; NEI left a matching recipe unlinked (cycle or competing recipe).");
+                        break;
+                    }
+                }
             }
         }
         List<Step> result = new ArrayList<>(steps.values());
@@ -161,6 +161,37 @@ public final class WorklistPlan {
         return result;
     }
 
+    List<BookmarkItem> missingInputs(RecipeChainMath math, ItemStack[] inventory) {
+        java.util.Set<RecipeId> active = new java.util.HashSet<>();
+        for (BookmarkItem output : math.recipeResults)
+            if (output.factor > 0 && output.amount > 0) active.add(output.recipeId);
+        Map<String, BookmarkItem> shortages = new LinkedHashMap<>();
+        for (BookmarkItem input : math.recipeIngredients) {
+            if (!active.contains(input.recipeId)) continue;
+            if (input.factor == 0) {
+                boolean owned = false;
+                for (ItemStack stack : inventory) {
+                    if (stack != null && stack.stackSize > 0
+                        && input.containsItems(BookmarkItem.of(groupId, stack.copy()))) {
+                        owned = true;
+                        break;
+                    }
+                }
+                if (!owned) shortages
+                    .putIfAbsent("tool:" + StackInfo.getItemStackGUID(input.itemStack), input.copyWithAmount(1));
+                continue;
+            }
+            if (math.preferredItems.containsKey(input)) continue;
+            long missing = math.requiredAmount.getOrDefault(input, 0L);
+            if (missing <= 0) continue;
+            String key = codechicken.nei.recipe.StackInfo.getItemStackGUID(input.itemStack);
+            BookmarkItem existing = shortages.get(key);
+            if (existing == null) shortages.put(key, input.copyWithAmount(missing));
+            else existing.amount = Math.addExact(existing.amount, missing);
+        }
+        return new ArrayList<>(shortages.values());
+    }
+
     public static final class Step {
 
         public final RecipeId id;
@@ -170,6 +201,7 @@ public final class WorklistPlan {
         public final List<BookmarkItem> inputs = new ArrayList<>();
         public final List<BookmarkItem> outputs = new ArrayList<>();
         public final List<RecipeId> dependencies = new ArrayList<>();
+        public final List<String> notes = new ArrayList<>();
         public long runs;
         public long readyRuns;
 
@@ -182,6 +214,31 @@ public final class WorklistPlan {
                 : reference.handler.getClass()
                     .getSimpleName();
             crafting = handler.equals("ShapedRecipeHandler") || handler.equals("ShapelessRecipeHandler");
+            if (reference != null) {
+                noteChance(reference.handler.getResultStack(reference.recipeIndex));
+                for (codechicken.nei.PositionedStack output : reference.handler.getOtherStacks(reference.recipeIndex))
+                    noteChance(output);
+            }
+        }
+
+        private void noteChance(codechicken.nei.PositionedStack stack) {
+            if (stack == null || !stack.getClass()
+                .getName()
+                .equals("gregtech.nei.GTNEIDefaultHandler$FixedPositionedStack")) return;
+            // This field is part of the exact GTNH 2.8.4 handler. Keep GT classes optional
+            // for the calculation tests and avoid loading the machine registry here.
+            try {
+                int chance = stack.getClass()
+                    .getField("mChance")
+                    .getInt(stack);
+                if (chance > 0 && chance < 10000) notes.add(
+                    "Chance output: " + stack.item.getDisplayName()
+                        + " ("
+                        + (chance / 100.0)
+                        + "%). Counts assume successful outputs; repeats may be needed.");
+            } catch (ReflectiveOperationException unavailable) {
+                notes.add("Output probability unavailable; check this recipe in NEI.");
+            }
         }
     }
 }

@@ -2,9 +2,9 @@
 
 ## Automated checks
 
-Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 17 tests, no failures or skips.
+Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 19 tests, no failures or skips.
 
-Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Ten integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, and an 80-stage chain cut at an owned intermediate.
+Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Twelve integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, and cyclic recipes requiring external starting material.
 
 ## Live GTNH 2.8.4 check
 
@@ -20,11 +20,12 @@ Testing uses a separate Prism instance and a disposable local world. No producti
 
 ## Outstanding checks
 
-- Recheck empty-list rendering and new tooltips after installing the latest build.
+- Recheck empty-list rendering, tooltips, scroll indicators, and recipe notes after installing the latest build.
 - Verify in-game inventory changes reduce the expected machine batches and change readiness.
 - Validate larger actual GTNH groups, fluids, probabilistic outputs, reusable tools, cycles and unavailable handlers.
 - Check smaller screen layouts and scrolling.
 - Validate a multiplayer connection with no server counterpart.
 - Run the checked-in Linux/macOS/Windows CI matrix after GitHub write authentication is available. Only Windows has been executed so far.
+- Local Ubuntu WSL was detected, but cannot start because virtualization is disabled; no Windows system configuration was changed.
 
 Compilation and synthetic integration tests do not establish full gameplay or cross-platform compatibility.
