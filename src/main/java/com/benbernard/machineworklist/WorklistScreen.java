@@ -47,6 +47,7 @@ public class WorklistScreen extends GuiScreen {
 
     private void buttons() {
         buttonList.clear();
+        buttonList.add(new GuiButton(6, width - 174, 10, 100, 20, "Record completed"));
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, selected == null ? "Close" : "Back"));
         if (selected != null) {
             GuiButton recipe = new GuiButton(4, 12, 42, 120, 20, "Open NEI recipe");
@@ -162,8 +163,12 @@ public class WorklistScreen extends GuiScreen {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xf5101723);
-        line(selected == null ? "MACHINE WORKLIST" : selected.machine, 14, 14, width - 90, 0x67dbc4);
-        String subtitle = selected == null ? "NEI group " + plan.groupId + " / Inventory + hotbar"
+        line(selected == null ? "MACHINE WORKLIST" : selected.machine, 14, 14, width - 194, 0x67dbc4);
+        String subtitle = selected == null
+            ? "NEI group " + plan.groupId
+                + " / Inventory + hotbar"
+                + (plan.progressWarning != null ? " / Check manual progress"
+                    : plan.completed.isEmpty() ? "" : " + manual completion")
             : selected.runs + " runs remaining / " + selected.readyRuns + " ready with current inventory";
         line(subtitle, 14, 28, width - 28, 0xa9b7cb);
         if (error != null) fontRendererObj.drawSplitString(error, 14, TOP, width - 28, 0xff8989);
@@ -272,6 +277,10 @@ public class WorklistScreen extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
+        if (button.id == 6) {
+            mc.displayGuiScreen(new ProgressScreen(this, plan, selected == null ? null : selected.outputs.get(0)));
+            return;
+        }
         if (button.id == 0) {
             if (selected == null) {
                 mc.displayGuiScreen(parent);
@@ -326,6 +335,10 @@ public class WorklistScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char character, int key) {
+        if (key == org.lwjgl.input.Keyboard.KEY_C) {
+            mc.displayGuiScreen(new ProgressScreen(this, plan, selected == null ? null : selected.outputs.get(0)));
+            return;
+        }
         if (key == 1) {
             if (selected == null) mc.displayGuiScreen(parent);
             else {

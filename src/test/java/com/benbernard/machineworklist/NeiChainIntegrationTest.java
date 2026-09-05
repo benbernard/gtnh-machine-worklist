@@ -47,7 +47,12 @@ public class NeiChainIntegrationTest {
             "missingReusableToolsAreCountedOnceAndDisappearWhenOwned",
             "cyclicRecipesLeaveAFiniteExternalSeedRequirement",
             "reusableConfigurationMustMatchMetadataAndNbt",
-            "consumedConfigurationCannotBeReplacedByUntaggedStock");
+            "consumedConfigurationCannotBeReplacedByUntaggedStock",
+            "manualCompletionCutsUpstreamWithoutDoubleCountingInventory",
+            "manualHalfCompletionRoundsBatchesAndCanBeUndone",
+            "manualProgressSurvivesReloadAndCanBeCleared",
+            "manualFluidProgressUsesMillibuckets",
+            "manualStockIsSharedAcrossBranches");
     }
 
     @Test
@@ -346,6 +351,111 @@ public class NeiChainIntegrationTest {
             0,
             plan.missingInputs(plan.remainingChain(stock), stock)
                 .size());
+    }
+
+    public void manualCompletionCutsUpstreamWithoutDoubleCountingInventory() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId wire = recipe(chain, "wiremill", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        RecipeId component = recipe(chain, "assembler", Items.redstone, 1, 1, Items.gold_ingot, 3);
+        RecipeId target = recipe(chain, "target", Items.diamond, 1, 4, Items.redstone, 2);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        BookmarkItem output = plan.progressOutputs()
+            .get(1);
+        plan.setCompleted(output, 4);
+        RecipeChainMath math = plan.remainingChain(new ItemStack[0]);
+        assertEquals(4, runs(math, component));
+        assertEquals(6, runs(math, wire));
+        assertEquals(4, runs(math, target));
+        ItemStack[] inventory = { new ItemStack(Items.redstone, 2), new ItemStack(Items.redstone, 2) };
+        assertEquals(4, runs(plan.remainingChain(inventory), component));
+        inventory[0].stackSize = 3;
+        assertEquals(3, runs(plan.remainingChain(inventory), component));
+        assertEquals(3, inventory[0].stackSize);
+        plan.setCompleted(output, 0);
+        assertEquals(8, runs(plan.remainingChain(new ItemStack[0]), component));
+    }
+
+    public void manualHalfCompletionRoundsBatchesAndCanBeUndone() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId target = recipe(chain, "target", Items.diamond, 3, 5, Items.gold_ingot, 2);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        BookmarkItem output = plan.progressOutputs()
+            .get(0);
+        assertEquals(9, plan.completeHalf(output, new ItemStack[0]));
+        assertEquals(2, runs(plan.remainingChain(new ItemStack[0]), target));
+        plan.setCompleted(output, 4);
+        assertEquals(4, runs(plan.remainingChain(new ItemStack[0]), target));
+        plan.setCompleted(output, 15);
+        assertEquals(0, runs(plan.remainingChain(new ItemStack[0]), target));
+        assertEquals(
+            1,
+            plan.progressOutputs()
+                .size());
+        plan.setCompleted(output, 0);
+        assertEquals(5, runs(plan.remainingChain(new ItemStack[0]), target));
+        assertEquals(9, plan.completeHalf(output, new ItemStack[] { new ItemStack(Items.diamond, 3) }));
+        assertEquals(2, runs(plan.remainingChain(new ItemStack[] { new ItemStack(Items.diamond, 3) }), target));
+        try {
+            plan.setCompleted(output, -1);
+            org.junit.Assert.fail("Negative completion must be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertEquals(9, plan.completed(output));
+        }
+    }
+
+    public void manualFluidProgressUsesMillibuckets() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId producer = recipe(chain, "fluid-maker", Items.water_bucket, 1, 1, Items.iron_ingot, 1);
+        recipe(chain, "fluid-consumer", Items.diamond, 1, 3, Items.water_bucket, 2);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        plan.setCompleted(
+            plan.progressOutputs()
+                .get(0),
+            2500);
+        assertEquals(4, runs(plan.remainingChain(new ItemStack[0]), producer));
+        assertEquals(4, runs(plan.remainingChain(new ItemStack[] { new ItemStack(Items.water_bucket, 2) }), producer));
+        assertEquals(3, runs(plan.remainingChain(new ItemStack[] { new ItemStack(Items.water_bucket, 3) }), producer));
+    }
+
+    public void manualStockIsSharedAcrossBranches() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId wire = recipe(chain, "wiremill", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        recipe(chain, "left", Items.diamond, 1, 2, Items.gold_ingot, 2);
+        recipe(chain, "right", Items.redstone, 1, 2, Items.gold_ingot, 3);
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        plan.setCompleted(
+            plan.progressOutputs()
+                .get(0),
+            4);
+        assertEquals(3, runs(plan.remainingChain(new ItemStack[0]), wire));
+        assertEquals(3, runs(plan.remainingChain(new ItemStack[] { new ItemStack(Items.gold_ingot, 4) }), wire));
+    }
+
+    public void manualProgressSurvivesReloadAndCanBeCleared() throws Exception {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId target = recipe(chain, "target", Items.diamond, 1, 10, Items.gold_ingot, 2);
+        java.nio.file.Path directory = java.nio.file.Files.createTempDirectory("worklist-progress-test");
+        java.nio.file.Path file = directory.resolve("progress.properties");
+        try {
+            WorklistPlan plan = new WorklistPlan(1, chain);
+            plan.loadProgress(file);
+            plan.setCompleted(
+                plan.progressOutputs()
+                    .get(0),
+                7);
+            WorklistPlan reopened = new WorklistPlan(1, chain);
+            reopened.loadProgress(file);
+            assertEquals(3, runs(reopened.remainingChain(new ItemStack[0]), target));
+            reopened.setCompleted(
+                reopened.progressOutputs()
+                    .get(0),
+                0);
+            plan.loadProgress(file);
+            assertEquals(10, runs(plan.remainingChain(new ItemStack[0]), target));
+        } finally {
+            java.nio.file.Files.deleteIfExists(file);
+            java.nio.file.Files.deleteIfExists(directory);
+        }
     }
 
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,

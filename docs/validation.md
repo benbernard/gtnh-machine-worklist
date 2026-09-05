@@ -2,7 +2,9 @@
 
 ## Automated checks
 
-Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 21 tests, no failures or skips.
+Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 26 tests, no failures or skips, including manual completion.
+
+Five manual-completion integration cases verify upstream reduction, inventory overlap without double counting, batch rounding, exact partial output counts, clearing/undo, saved-progress reload, fluid mB, and shared branch allocation. The completion editor and death-screen fix still need live gameplay validation; they are newer than the CI artifact tested below.
 
 GitHub Actions [run 33991055598](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/33991055598), commit `8b60fda4c546a4316443834d99aff80190acf2f7`: the build-and-test steps passed on `windows-latest`, `ubuntu-latest`, and `macos-latest`. Downloaded reports independently confirm 21 tests, zero failures, and zero skipped tests on each platform. All three production JARs have the same SHA-256: `911894b8697ff9f6216e524003778373e9e3d4b2473be5690264e1e29ab3bbda`.
 

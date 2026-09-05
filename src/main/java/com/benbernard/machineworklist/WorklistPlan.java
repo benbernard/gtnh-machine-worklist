@@ -25,6 +25,9 @@ public final class WorklistPlan {
 
     public final int groupId;
     private final List<BookmarkItem> source;
+    final Map<String, Long> completed = new LinkedHashMap<>();
+    String progressWarning;
+    private java.nio.file.Path progressFile;
     public final List<BookmarkItem> missingMaterials = new ArrayList<>();
 
     WorklistPlan(int groupId, List<BookmarkItem> source) {
@@ -45,7 +48,134 @@ public final class WorklistPlan {
                 entry -> source.add(
                     entry.getValue()
                         .copy()));
-        return new WorklistPlan(groupId, source);
+        WorklistPlan plan = new WorklistPlan(groupId, source);
+        try {
+            plan.loadProgress();
+        } catch (RuntimeException exception) {
+            plan.completed.clear();
+            plan.progressWarning = exception.getMessage();
+        }
+        return plan;
+    }
+
+    static String outputKey(BookmarkItem item) {
+        FluidStack fluid = StackInfo.getFluid(item.itemStack);
+        return fluid == null ? StackInfo.getItemStackGUID(item.itemStack)
+            : "fluid:" + fluid.getFluid()
+                .getName() + ":" + fluid.tag;
+    }
+
+    List<BookmarkItem> progressOutputs() {
+        Map<String, BookmarkItem> outputs = new LinkedHashMap<>();
+        for (BookmarkItem item : source) if (item.type == BookmarkItem.BookmarkItemType.RESULT && item.factor > 0)
+            outputs.putIfAbsent(outputKey(item), item);
+        return new ArrayList<>(outputs.values());
+    }
+
+    long completed(BookmarkItem output) {
+        return completed.getOrDefault(outputKey(output), 0L);
+    }
+
+    long completeHalf(BookmarkItem output, ItemStack[] inventory) {
+        long remaining = 0;
+        for (BookmarkItem result : remainingChain(inventory).recipeResults)
+            if (outputKey(result).equals(outputKey(output))) remaining = Math.addExact(remaining, result.amount);
+        long batches = remaining / output.factor + (remaining % output.factor == 0 ? 0 : 1);
+        long half = Math.multiplyExact(batches / 2 + batches % 2, output.factor);
+        long visible = 0;
+        for (ItemStack stack : inventory) if (stack != null && stack.stackSize > 0) {
+            BookmarkItem stock = BookmarkItem.of(groupId, stack);
+            if (outputKey(stock).equals(outputKey(output))) visible = Math.addExact(visible, stock.amount);
+        }
+        long amount = Math.addExact(Math.max(visible, completed(output)), half);
+        setCompleted(output, amount);
+        return amount;
+    }
+
+    void setCompleted(BookmarkItem output, long amount) {
+        if (amount < 0) throw new IllegalArgumentException("Enter a non-negative whole quantity.");
+        String key = outputKey(output);
+        Long previous = completed.get(key);
+        if (amount == 0) completed.remove(key);
+        else completed.put(key, amount);
+        try {
+            saveProgress();
+            progressWarning = null;
+        } catch (RuntimeException exception) {
+            if (previous == null) completed.remove(key);
+            else completed.put(key, previous);
+            throw exception;
+        }
+    }
+
+    private void loadProgress() {
+        String world = codechicken.nei.NEIClientConfig.getWorldPath();
+        if (world == null) return;
+        // A changed group gets a new record. World/server names are hashed, never written into the file.
+        StringBuilder identity = new StringBuilder(world).append(':')
+            .append(groupId);
+        for (BookmarkItem item : source) identity.append('|')
+            .append(outputKey(item))
+            .append(':')
+            .append(item.amount)
+            .append(':')
+            .append(item.factor)
+            .append(':')
+            .append(item.type)
+            .append(':')
+            .append(
+                item.recipeId == null ? ""
+                    : item.recipeId.toJsonObject()
+                        .toString());
+        String name = java.util.UUID.nameUUIDFromBytes(
+            identity.toString()
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            .toString();
+        progressFile = net.minecraft.client.Minecraft.getMinecraft().mcDataDir.toPath()
+            .resolve("config/machineworklist/progress")
+            .resolve(name + ".properties");
+        loadProgress(progressFile);
+    }
+
+    void loadProgress(java.nio.file.Path file) {
+        progressFile = file;
+        completed.clear();
+        if (!java.nio.file.Files.exists(progressFile)) return;
+        java.util.Properties values = new java.util.Properties();
+        try (java.io.InputStream input = java.nio.file.Files.newInputStream(progressFile)) {
+            values.load(input);
+            for (BookmarkItem output : progressOutputs()) {
+                String key = outputKey(output);
+                long amount = Long.parseLong(values.getProperty(key, "0"));
+                if (amount < 0) throw new IllegalArgumentException("Negative saved completion quantity");
+                if (amount > 0) completed.put(key, amount);
+            }
+        } catch (java.io.IOException | IllegalArgumentException exception) {
+            throw new IllegalStateException("Could not read manual progress: " + exception.getMessage(), exception);
+        }
+    }
+
+    private void saveProgress() {
+        if (progressFile == null) return;
+        java.util.Properties values = new java.util.Properties();
+        completed.forEach((key, amount) -> values.setProperty(key, amount.toString()));
+        try {
+            java.nio.file.Files.createDirectories(progressFile.getParent());
+            java.nio.file.Path temporary = java.nio.file.Files
+                .createTempFile(progressFile.getParent(), "progress-", ".tmp");
+            try {
+                try (java.io.OutputStream output = java.nio.file.Files.newOutputStream(temporary)) {
+                    values.store(
+                        output,
+                        "Completed outputs still available for this crafting group; includes inventory copies.");
+                }
+                java.nio.file.Files.move(temporary, progressFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                java.nio.file.Files.deleteIfExists(temporary);
+            }
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Could not save manual progress: " + exception.getMessage(), exception);
+        }
     }
 
     RecipeChainMath remainingChain(ItemStack[] inventory) {
@@ -62,6 +192,21 @@ public final class WorklistPlan {
             else existing.amount = Math.addExact(existing.amount, item.amount);
         }
         math.initialItems.addAll(supplies.values());
+        // Manual counts include inventory copies: add only the amount not already visible.
+        // Keep these separate until fluid normalization so cells and buckets share mB accounting.
+        for (BookmarkItem output : progressOutputs()) {
+            long declared = completed(output);
+            if (declared == 0) continue;
+            long visible = 0;
+            for (BookmarkItem supply : supplies.values())
+                if (outputKey(output).equals(outputKey(supply))) visible = Math.addExact(visible, supply.amount);
+            if (declared > visible) {
+                BookmarkItem credit = new MatchingBookmarkItem(output).copyWithAmount(declared - visible);
+                credit.type = BookmarkItem.BookmarkItemType.ITEM;
+                credit.recipeId = null;
+                math.initialItems.add(credit);
+            }
+        }
         // NEI's tool/container recycling can treat drained fluid containers as reusable supply.
         // Account in mB using inert, distinct internal tokens; retain NEI's fluid permutations.
         // Tokens never leave the calculation and never enter the player's inventory.

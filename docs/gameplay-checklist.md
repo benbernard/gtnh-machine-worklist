@@ -23,7 +23,17 @@ The existing test-instance NEI group 16 targets 16 steam ovens. Its previously o
 - Verify chance-output notes and external-input boundaries for cyclic or competing recipes are visible and understandable.
 - Verify missing recipe handlers produce a clear unavailable state.
 
-## Multiplayer
+## Manual completion
+
+- From a recipe detail, open Record completed (or press C). Set an exact output total and verify the queue and upstream input quantities shrink.
+- Complete half the remaining output; verify rounding to whole recipe batches, including odd batch counts and recipes producing multiple items per batch.
+- Pick up already-recorded output and confirm inventory does not count it twice. Inventory exceeding the recorded total should still count in full.
+- Close/reopen the worklist and restart the client; verify the same world/server and unchanged group restore progress. Another world or changed recipe selection must not inherit it.
+- Set an output fully complete, then find it again in the completion editor and clear it. Verify the operation returns.
+- Check fluid entries use mB. Record coproducts separately and check chance outputs are not automatically invented.
+- Check the editor at small and large window sizes, including errors, long item names, and Previous/Next navigation.
+
+## Multiplayer connection
 
 Connect using the test client to the intended GTNH 2.8.4 server with no server-side Machine Worklist installation. Do not use item-giving commands there. Confirm connection, selected-group import, inventory accounting, UI navigation, and absence of client/server errors. Record the server pack version and observed result without publishing its address or account details.
 
