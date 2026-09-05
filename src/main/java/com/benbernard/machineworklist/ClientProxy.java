@@ -21,6 +21,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     public void init() {
         ClientRegistry.registerKeyBinding(open);
         GuiContainerManager.addInputHandler(this);
+        net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new WorklistCommand());
     }
 
     @Override

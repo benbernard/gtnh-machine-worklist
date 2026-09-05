@@ -20,10 +20,16 @@ public final class WorklistPlan {
 
     public final int groupId;
     private final List<BookmarkItem> source;
+    public final List<BookmarkItem> missingMaterials = new ArrayList<>();
 
-    private WorklistPlan(int groupId, List<BookmarkItem> source) {
+    WorklistPlan(int groupId, List<BookmarkItem> source) {
         this.groupId = groupId;
-        this.source = source;
+        this.source = new ArrayList<>();
+        for (BookmarkItem item : source) {
+            BookmarkItem copy = item.copy();
+            copy.itemStack = item.itemStack.copy();
+            this.source.add(copy);
+        }
     }
 
     public static WorklistPlan capture(BookmarkGrid grid, int groupId) {
@@ -39,7 +45,7 @@ public final class WorklistPlan {
         return new WorklistPlan(groupId, source);
     }
 
-    public List<Step> calculate(ItemStack[] inventory) {
+    RecipeChainMath remainingChain(ItemStack[] inventory) {
         // Collapsing is a display preference, not permission to stop traversing a chain.
         RecipeChainMath math = RecipeChainMath.of(source, Collections.emptySet());
         // Plain bookmarks are not proof of ownership. Supply comes only from actual inventory.
@@ -47,7 +53,29 @@ public final class WorklistPlan {
         for (ItemStack stack : inventory) {
             if (stack != null && stack.stackSize > 0) math.initialItems.add(BookmarkItem.of(groupId, stack.copy()));
         }
-        math.refresh();
+        boolean paused = codechicken.nei.recipe.StackInfo.isPausedItemDamageSound();
+        try {
+            math.refresh();
+        } finally {
+            codechicken.nei.recipe.StackInfo.pauseItemDamageSound(paused);
+        }
+        return math;
+    }
+
+    public List<Step> calculate(ItemStack[] inventory) {
+        RecipeChainMath math = remainingChain(inventory);
+        missingMaterials.clear();
+        Map<String, BookmarkItem> shortages = new LinkedHashMap<>();
+        for (BookmarkItem input : math.recipeIngredients) {
+            if (math.preferredItems.containsKey(input)) continue;
+            long missing = math.requiredAmount.getOrDefault(input, 0L);
+            if (missing <= 0) continue;
+            String key = codechicken.nei.recipe.StackInfo.getItemStackGUID(input.itemStack);
+            BookmarkItem existing = shortages.get(key);
+            if (existing == null) shortages.put(key, input.copyWithAmount(missing));
+            else existing.amount = Math.addExact(existing.amount, missing);
+        }
+        missingMaterials.addAll(shortages.values());
         Map<RecipeId, Step> steps = new LinkedHashMap<>();
         for (BookmarkItem result : math.recipeResults) {
             if (result.factor <= 0 || result.amount <= 0) continue;
@@ -93,6 +121,7 @@ public final class WorklistPlan {
         public final RecipeId id;
         public final String machine;
         public final boolean crafting;
+        public final boolean recipeAvailable;
         public final List<BookmarkItem> inputs = new ArrayList<>();
         public final List<BookmarkItem> outputs = new ArrayList<>();
         public final List<RecipeId> dependencies = new ArrayList<>();
@@ -102,6 +131,7 @@ public final class WorklistPlan {
         private Step(RecipeId id) {
             this.id = id;
             RecipeHandlerRef reference = RecipeHandlerRef.of(id);
+            recipeAvailable = reference != null;
             machine = reference == null ? id.getHandleName() : reference.handler.getRecipeName();
             String handler = reference == null ? ""
                 : reference.handler.getClass()
