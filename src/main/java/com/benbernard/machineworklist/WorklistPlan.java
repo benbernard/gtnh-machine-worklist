@@ -71,6 +71,15 @@ public final class WorklistPlan {
         normalizeFluids(math.initialItems, originals);
         normalizeFluids(math.recipeIngredients, originals);
         normalizeFluids(math.recipeResults, originals);
+        // Different container items may normalize to the same fluid accounting identity.
+        Map<BookmarkItem, BookmarkItem> normalizedSupplies = new LinkedHashMap<>();
+        for (BookmarkItem item : math.initialItems) {
+            BookmarkItem existing = normalizedSupplies.get(item);
+            if (existing == null) normalizedSupplies.put(item, item);
+            else existing.amount = Math.addExact(existing.amount, item.amount);
+        }
+        math.initialItems.clear();
+        math.initialItems.addAll(normalizedSupplies.values());
         boolean paused = codechicken.nei.recipe.StackInfo.isPausedItemDamageSound();
         try {
             math.refresh();

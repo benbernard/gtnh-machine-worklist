@@ -17,7 +17,10 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
     static net.minecraft.client.gui.GuiScreen pendingScreen;
 
-    private final KeyBinding open = new KeyBinding("key.machineworklist.open", Keyboard.KEY_P, "GTNH Machine Worklist");
+    private final KeyBinding open = new KeyBinding(
+        "key.machineworklist.open",
+        Keyboard.KEY_F10,
+        "GTNH Machine Worklist");
 
     @Override
     public void init() {
@@ -48,7 +51,8 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         Minecraft mc = Minecraft.getMinecraft();
         if (group < 0 || !grid.isCraftingMode(group)) {
             mc.thePlayer.addChatMessage(
-                new ChatComponentText("Hover an NEI autocrafting group and press P to open its machine work list."));
+                new ChatComponentText(
+                    "Hover an NEI autocrafting group and press the worklist key to open its machine work list."));
             return false;
         }
         mc.displayGuiScreen(new WorklistScreen(gui, WorklistPlan.capture(grid, group)));

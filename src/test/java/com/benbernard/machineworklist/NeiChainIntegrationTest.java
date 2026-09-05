@@ -167,6 +167,9 @@ public class NeiChainIntegrationTest {
         assertEquals(6000, water.amount);
         assertEquals(Long.valueOf(4000), math.requiredAmount.get(water));
         assertEquals(2, inventory[0].stackSize);
+        RecipeChainMath mixedContainers = new WorklistPlan(1, chain).remainingChain(
+            new ItemStack[] { new ItemStack(Items.water_bucket, 1), new ItemStack(Items.potionitem, 1) });
+        assertEquals(Long.valueOf(4000), mixedContainers.requiredAmount.get(mixedContainers.recipeIngredients.get(0)));
     }
 
     public void multipleInventoryStacksAreAllAvailable() {
