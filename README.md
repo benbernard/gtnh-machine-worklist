@@ -4,7 +4,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Under development. The baseline Windows, Linux, and macOS builds pass 21 automated tests and produce identical mod JARs. The latest local Windows build passes 26 tests, including manual completion. Live GTNH 2.8.4 checks verify selected-group import, inventory deduction, circuit-dependent readiness, and NEI recipe navigation. Manual completion, the death-screen fix, and multiplayer behavior still require gameplay validation.
+Under development. The latest Windows, Linux, and macOS builds pass all 26 automated tests, including manual completion, and produce identical mod JARs. Live GTNH 2.8.4 checks verify selected-group import, inventory deduction, circuit-dependent readiness, and NEI recipe navigation. Manual completion, the death-screen fix, and multiplayer behavior still require gameplay validation.
 
 ## Use
 

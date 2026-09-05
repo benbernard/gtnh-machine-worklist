@@ -10,6 +10,12 @@ GitHub Actions [run 33991055598](https://github.com/benbernard/gtnh-machine-work
 
 Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Fourteen integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, cyclic recipes requiring external starting material, and consumed and reusable ingredients with required metadata/NBT configuration.
 
+### Latest cross-platform verification
+
+GitHub Actions [run 33993150298](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/33993150298), commit `316542f3db3489b83619c4dd76e8fdcf4cf78a85`: downloaded reports confirm 26 tests, zero failures, and zero skips on Windows, Ubuntu, and macOS. All three production `machineworklist-316542f.jar` artifacts have SHA-256 `6532b16ee4c2dc2426c9a4727c00e9e79f132beceaa5ce64d97d896f6ffed5f1`. This includes the manual completion implementation and death-screen fix; it does not validate their rendered UI.
+
+On the next remote gameplay attempt, Minecraft window capture failed twice with `window capture timed out: timed out waiting on channel`, including after refreshing the returned window selection. Native input was stopped according to the Computer Use recovery instructions. The user is away; no physical interaction is assumed or required for automated build checks. Fresh gameplay screenshots and remaining interactive checks are still outstanding.
+
 ## Live GTNH 2.8.4 check
 
 Testing uses a separate Prism instance and a disposable local world. No production world or multiplayer server has been modified.
