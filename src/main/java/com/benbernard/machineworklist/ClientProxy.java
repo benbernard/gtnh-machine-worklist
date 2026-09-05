@@ -15,6 +15,8 @@ import cpw.mods.fml.client.registry.ClientRegistry;
 
 public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
+    static net.minecraft.client.gui.GuiScreen pendingScreen;
+
     private final KeyBinding open = new KeyBinding("key.machineworklist.open", Keyboard.KEY_P, "GTNH Machine Worklist");
 
     @Override
@@ -22,6 +24,18 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         ClientRegistry.registerKeyBinding(open);
         GuiContainerManager.addInputHandler(this);
         net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new WorklistCommand());
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(this);
+    }
+
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void tick(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent event) {
+        if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || pendingScreen == null) return;
+        net.minecraft.client.gui.GuiScreen screen = pendingScreen;
+        pendingScreen = null;
+        if (Minecraft.getMinecraft().thePlayer != null) Minecraft.getMinecraft()
+            .displayGuiScreen(screen);
     }
 
     @Override

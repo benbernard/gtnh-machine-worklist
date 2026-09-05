@@ -17,7 +17,6 @@ import org.junit.Test;
 import codechicken.nei.bookmark.BookmarkItem;
 import codechicken.nei.bookmark.BookmarkItem.BookmarkItemType;
 import codechicken.nei.recipe.Recipe.RecipeId;
-import codechicken.nei.recipe.StackInfo;
 import codechicken.nei.recipe.chain.RecipeChainMath;
 
 /** Exercises the actual pinned NEI engine, using vanilla items as deterministic recipe fixtures. */
@@ -65,6 +64,8 @@ public class NeiChainIntegrationTest {
         fixture.repeatedCalculationsDoNotMutateInventoryOrTargets();
         fixture.coproductsComeFromTheSameBatches();
         fixture.multipleTargetsShareBatchSurplus();
+        fixture.fluidContainersUseMillibucketsAndPreserveRealInventory();
+        fixture.multipleInventoryStacksAreAllAvailable();
     }
 
     public void existingIntermediatesReduceUpstreamMachineBatches() {
@@ -134,7 +135,7 @@ public class NeiChainIntegrationTest {
                 3,
                 separator,
                 BookmarkItemType.RESULT,
-                Collections.singletonMap(StackInfo.getItemStackGUID(byproduct), byproduct)));
+                BookmarkItem.generatePermutations(byproduct, (codechicken.nei.recipe.Recipe) null)));
         recipe(
             chain,
             "target",
@@ -156,6 +157,27 @@ public class NeiChainIntegrationTest {
         assertEquals(2, runs(math, wire));
     }
 
+    public void fluidContainersUseMillibucketsAndPreserveRealInventory() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        recipe(chain, "fluid-consumer", Items.diamond, 1, 3, Items.water_bucket, 2);
+        ItemStack[] inventory = { new ItemStack(Items.water_bucket, 2) };
+        RecipeChainMath math = new WorklistPlan(1, chain).remainingChain(inventory);
+        BookmarkItem water = math.recipeIngredients.get(0);
+        assertEquals(2000, water.factor);
+        assertEquals(6000, water.amount);
+        assertEquals(Long.valueOf(4000), math.requiredAmount.get(water));
+        assertEquals(2, inventory[0].stackSize);
+    }
+
+    public void multipleInventoryStacksAreAllAvailable() {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId target = recipe(chain, "target", Items.diamond, 1, 100, Items.gold_ingot, 1);
+        ItemStack[] inventory = { new ItemStack(Items.diamond, 64), new ItemStack(Items.diamond, 36) };
+        assertEquals(0, runs(new WorklistPlan(1, chain).remainingChain(inventory), target));
+        assertEquals(64, inventory[0].stackSize);
+        assertEquals(36, inventory[1].stackSize);
+    }
+
     private static RecipeId recipe(List<BookmarkItem> chain, String name, Item output, int yield, int runs, Item input,
         int count) {
         return recipe(chain, name, output, yield, runs, new ItemStack(input, count));
@@ -172,7 +194,7 @@ public class NeiChainIntegrationTest {
                 yield,
                 id,
                 BookmarkItemType.RESULT,
-                Collections.singletonMap(StackInfo.getItemStackGUID(out), out)));
+                BookmarkItem.generatePermutations(out, (codechicken.nei.recipe.Recipe) null)));
         for (ItemStack in : inputs) chain.add(
             BookmarkItem.of(
                 1,
@@ -180,7 +202,7 @@ public class NeiChainIntegrationTest {
                 in.stackSize,
                 id,
                 BookmarkItemType.INGREDIENT,
-                Collections.singletonMap(StackInfo.getItemStackGUID(in), in)));
+                BookmarkItem.generatePermutations(in, (codechicken.nei.recipe.Recipe) null)));
         return id;
     }
 

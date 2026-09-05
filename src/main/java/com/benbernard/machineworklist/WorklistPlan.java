@@ -3,16 +3,21 @@ package com.benbernard.machineworklist;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.FluidStack;
 
 import codechicken.nei.bookmark.BookmarkGrid;
 import codechicken.nei.bookmark.BookmarkItem;
 import codechicken.nei.recipe.Recipe.RecipeId;
 import codechicken.nei.recipe.RecipeHandlerRef;
+import codechicken.nei.recipe.StackInfo;
 import codechicken.nei.recipe.chain.RecipeChainMath;
 
 /** A detached snapshot: calculation never edits the user's NEI bookmarks or real inventory. */
@@ -50,16 +55,47 @@ public final class WorklistPlan {
         RecipeChainMath math = RecipeChainMath.of(source, Collections.emptySet());
         // Plain bookmarks are not proof of ownership. Supply comes only from actual inventory.
         math.initialItems.clear();
+        Map<BookmarkItem, BookmarkItem> supplies = new LinkedHashMap<>();
         for (ItemStack stack : inventory) {
-            if (stack != null && stack.stackSize > 0) math.initialItems.add(BookmarkItem.of(groupId, stack.copy()));
+            if (stack == null || stack.stackSize <= 0) continue;
+            BookmarkItem item = BookmarkItem.of(groupId, stack.copy());
+            BookmarkItem existing = supplies.get(item);
+            if (existing == null) supplies.put(item, item);
+            else existing.amount = Math.addExact(existing.amount, item.amount);
         }
+        math.initialItems.addAll(supplies.values());
+        // NEI's tool/container recycling can treat drained fluid containers as reusable supply.
+        // Account in mB using inert, distinct internal tokens; retain NEI's fluid permutations.
+        // Tokens never leave the calculation and never enter the player's inventory.
+        Map<BookmarkItem, ItemStack> originals = new IdentityHashMap<>();
+        normalizeFluids(math.initialItems, originals);
+        normalizeFluids(math.recipeIngredients, originals);
+        normalizeFluids(math.recipeResults, originals);
         boolean paused = codechicken.nei.recipe.StackInfo.isPausedItemDamageSound();
         try {
             math.refresh();
         } finally {
             codechicken.nei.recipe.StackInfo.pauseItemDamageSound(paused);
+            originals.forEach((item, original) -> item.itemStack = original);
         }
         return math;
+    }
+
+    private static void normalizeFluids(List<BookmarkItem> items, Map<BookmarkItem, ItemStack> originals) {
+        for (BookmarkItem item : items) {
+            FluidStack fluid = StackInfo.getFluid(item.itemStack);
+            if (fluid == null) continue;
+            originals.put(item, item.itemStack);
+            ItemStack token = new ItemStack(Items.paper);
+            NBTTagCompound identity = new NBTTagCompound();
+            identity.setString(
+                "machineworklistFluid",
+                fluid.getFluid()
+                    .getName());
+            if (fluid.tag != null) identity.setTag("fluidTag", fluid.tag.copy());
+            token.setTagCompound(identity);
+            item.itemStack = token;
+        }
     }
 
     public List<Step> calculate(ItemStack[] inventory) {

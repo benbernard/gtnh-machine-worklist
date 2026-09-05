@@ -59,6 +59,9 @@ public class WorklistCommand extends CommandBase {
                 .addChatMessage(new ChatComponentText("No autocrafting group " + group + " on the current NEI page."));
             return;
         }
-        mc.displayGuiScreen(new WorklistScreen(new GuiInventory(mc.thePlayer), WorklistPlan.capture(grid, group)));
+        // GuiChat closes itself after executing a command; open on the following client tick.
+        ClientProxy.pendingScreen = new WorklistScreen(
+            new GuiInventory(mc.thePlayer),
+            WorklistPlan.capture(grid, group));
     }
 }
