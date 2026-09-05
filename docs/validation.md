@@ -4,6 +4,8 @@
 
 Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 21 tests, no failures or skips.
 
+GitHub Actions [run 33991055598](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/33991055598), commit `8b60fda4c546a4316443834d99aff80190acf2f7`: the build-and-test steps passed on `windows-latest`, `ubuntu-latest`, and `macos-latest`. Downloaded reports independently confirm 21 tests, zero failures, and zero skipped tests on each platform. All three production JARs have the same SHA-256: `911894b8697ff9f6216e524003778373e9e3d4b2473be5690264e1e29ab3bbda`.
+
 Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Fourteen integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, cyclic recipes requiring external starting material, and consumed and reusable ingredients with required metadata/NBT configuration.
 
 ## Live GTNH 2.8.4 check
@@ -25,7 +27,8 @@ Testing uses a separate Prism instance and a disposable local world. No producti
 - Validate larger actual GTNH groups, fluids, probabilistic outputs, reusable tools, cycles and unavailable handlers.
 - Check smaller screen layouts and scrolling.
 - Validate a multiplayer connection with no server counterpart.
-- Run the checked-in Linux/macOS/Windows CI matrix after GitHub write authentication is available. Only Windows has been executed so far.
-- Local Ubuntu WSL was detected, but cannot start because virtualization is disabled; no Windows system configuration was changed.
+- Native gameplay has only been exercised on Windows. The CI matrix verifies compilation, packaging, and the automated calculation tests, not rendered gameplay on Linux/macOS.
+
+Local Ubuntu WSL was detected but cannot start because virtualization is disabled; Linux build validation therefore used GitHub Actions. No Windows system configuration was changed.
 
 Compilation and synthetic integration tests do not establish full gameplay or cross-platform compatibility.
