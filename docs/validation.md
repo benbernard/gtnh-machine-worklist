@@ -47,3 +47,8 @@ The test player subsequently died to a stray while the screen was open. The work
 Local Ubuntu WSL was detected but cannot start because virtualization is disabled; Linux build validation therefore used GitHub Actions. No Windows system configuration was changed.
 
 Compilation and synthetic integration tests do not establish full gameplay or cross-platform compatibility.
+
+### Live exact completion and screenshots (2026-09-05)
+
+Installed CI build 316542f (verified SHA-256 above) in the separate Prism test instance. After loading survival inventory to initialize NEI bookmarks, group 16 showed 16 assembler, 164 steel bending, and 32 wrought-iron bending runs. Opened the completion editor with C, entered 8 completed Steam Ovens with the keyboard, saved with Enter, and returned with Escape. The queue then showed 8 assembler, 82 steel bending, and 16 wrought-iron bending runs. Original F2 screenshots of both queue states are published at https://machineworklist.crabanddog.com/#screenshots. This verifies exact entry and live recalculation, not the half-complete button, undo/restart, or multiplayer checks. The editor background also needs better contrast over large world waypoint labels. Automated mouse activation remained inconsistent in the native respawn screen and worklist; keyboard interaction worked.
+
