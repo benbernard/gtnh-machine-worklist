@@ -40,3 +40,11 @@ Connect using the test client to the intended GTNH 2.8.4 server with no server-s
 ## Evidence
 
 Record the tested JAR SHA-256, target group, starting inventory, expected/actual quantities, and any failures. The currently installed CI artifact is `8b60fda`, SHA-256 `911894b8697ff9f6216e524003778373e9e3d4b2473be5690264e1e29ab3bbda`. Automated tests and artifact installation alone do not prove these gameplay checks passed.
+
+## Tabs, overall inputs pane, and NEI crafting
+
+- Compare Machines, Crafting, and All against one group; confirm tab filters do not change overall missing inputs.
+- Scroll the queue and missing pane independently. Resize below the split-pane threshold and back, including while showing missing inputs.
+- Open from a crafting table using F10. Select a ready shaped/shapeless recipe and craft exactly one batch through NEI. Verify item consumption and output, then reopen and check remaining runs.
+- Verify disabled crafting with an incompatible 2x2 grid, stale/closed container, full inventory, held cursor stack, occupied crafting grid, missing inputs, or NEI autocrafting disabled.
+- Verify the action never runs a machine recipe and does not apply manual off-inventory stock as available crafting input.

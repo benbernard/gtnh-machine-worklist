@@ -44,3 +44,9 @@ Windows: `gradlew.bat build`
 Linux/macOS: `./gradlew build`
 
 Do not commit Minecraft files, account data, worlds, or launcher configuration. Test using a separate GTNH 2.8.4 instance.
+
+## Updated worklist UI (source build)
+
+The current source adds separate Machines, Crafting, and All tabs. At wide GUI sizes an independently scrollable Overall missing inputs pane stays visible across tabs and recipe details; smaller windows use a Missing inputs view. The pane always covers the complete group, regardless of tab or readiness filter.
+
+Crafting recipe details have Craft 1 batch via NEI. Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the inventory grid only supports recipes that fit). NEI autocrafting must be enabled. The current container must still be open, with an empty grid, empty cursor, a free inventory slot, and matching inputs. The button returns to that container and asks NEI to craft one recipe batch; it does not run machines or automatically execute the entire group. Reopen the group to see resulting inventory changes. This new UI/action still needs live verification; the website download and screenshots are the older 316542f build.
