@@ -2,15 +2,15 @@
 
 ## Automated checks — 2026-09-05
 
-GitHub Actions [run 34006098919](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34006098919), commit `46935983cca8e2978c62735bbfbd8567cc16270e`: downloaded reports independently confirm **28 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `4c5e1de546a11ecfadf963a0b0d264e0b6bb6e618707229f915c6066d5d6b334`.
+GitHub Actions [run 34006808760](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34006808760), commit `f5b1e4b79b3169541ddaf3ca6c270a316e4c30c1`: downloaded reports independently confirm **29 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `e9f80be678ecf94634ddbc0bff6d937cd1f4669a839a98b9fcd59961d5937e53`.
 
-The tests cover finite global stock allocation, overlapping ingredient alternatives, owned intermediate/finished items, shared branches and batch surplus, multiple outputs, fluid containers and mB, reusable molds/circuits with configuration, cycles, repeated calculations and an 80-stage chain. Integration fixtures run the pinned NEI 2.8.44-GTNH calculator in a Forge classloader. Manual-completion cases cover exact quantities, upstream reduction, inventory overlap, rounding, clearing and persisted reload. Two backpack layout tests cover its 48 storage slots and nine crafting positions; they do not execute the live backpack container or NEI transfer.
+The tests cover finite global stock allocation, overlapping ingredient alternatives, owned intermediate/finished items, shared branches and batch surplus, multiple outputs, fluid containers and mB, reusable molds/circuits with configuration, cycles, repeated calculations and an 80-stage chain. Integration fixtures run the pinned NEI 2.8.44-GTNH calculator in a Forge classloader. Manual-completion cases cover exact quantities, upstream reduction, inventory overlap, rounding, clearing and persisted reload. Three backpack layout/overlay tests cover its 48 storage slots, nine crafting positions and cleanup/supply boundaries; live transfer evidence is recorded below.
 
-A local Windows/JDK 25 `spotlessApply build` also passed all 28 tests after the tooltip draw-order and completion-editor background fixes. These rendering fixes require a visual recheck. `git diff --check` passed.
+A local Windows/JDK 25 `spotlessApply build` also passed all 29 tests after the backpack cleanup fix. `git diff --check` passed.
 
 ## Live GTNH 2.8.4 checks
 
-All checks use the separate Prism test instance and disposable **New World**. No production world or multiplayer inventory was modified.
+Checks use the separate Prism test instance, disposable **New World**, and a read-only inventory/worklist check on the authorized **EMBU** server. No production world files or multiplayer inventory items were modified.
 
 - Startup with the mod and F10 import of NEI group 16 passed.
 - With no materials, the Steam Oven chain showed 16 assembler, 164 steel bending and 32 wrought-iron bending runs.
@@ -34,14 +34,23 @@ All checks use the separate Prism test instance and disposable **New World**. No
 - Opening through `/machineworklist` constructed an uninitialized inventory GUI, while NEI ingredient checks require its Minecraft reference. Initialized the parent before creating the worklist; the local build and all 28 tests pass. A real player-grid transfer subsequently passed using the keyboard-enabled build.
 - A command-given Adventure Backpack without NBT crashed its own `InventoryBackpack.saveToNBT` during an ordinary inventory click, before opening the worklist. The disposable test fixture was backed up and initialized with backpack NBT. This crash does not establish either success or failure of worklist transfer compatibility.
 
+- A real backpack transfer initially produced one output but NEI swept all adjacent storage into player inventory during grid cleanup. Added a backpack-specific NEI overlay that restricts cleanup to the nine visible crafting positions, excludes hidden mirrors and utility slots as supply, and rejects ingredients mapped outside the grid. A Forge-classloader regression test checks these boundaries; the suite now has 29 tests. The corrected live transfer passed as described below.
+
+## Final transfer and multiplayer checks
+
+- The corrected handheld Adventure Backpack transfer used the local build of the `f5b1e4b` source, SHA-256 `5f7d25012fa15b96299f0cade888f9fd058c3e9f6389c15509597992cc5c8307`. Player inventory had two crafting tables and no flint/logs; backpack storage held 8 flint, 8 logs and 10 cobblestone. An eight-table group correctly showed six remaining and four ready, rather than double-counting mirrored storage.
+- F10 opened the sole crafting group from the actual backpack GUI. Selecting Crafting, Enter, then F produced one table and returned to the backpack. Storage retained 6 flint, 6 logs and all 10 cobblestone; player tables increased to three and the crafting grid was empty. Reopening showed five remaining, three ready, and four flint/four logs missing. Original F2 captures: [before](evidence/backpack-before.png), [after](evidence/backpack-after.png).
+- The completion editor rendered clearly at the small test window size: [original F2 capture](evidence/completion-small-window.png). Its background fix is visually verified. Tooltip layering is improved; exhaustive edge-of-window tooltip positioning is not verified.
+- The exact final CI JAR above connected to the saved EMBU server without installing a server counterpart. `/machineworklist 16` imported its group. Machines showed three operations, Crafting twelve and All fifteen against the real inventory; overall missing inputs opened, and Escape returned to the unchanged inventory. No crafting or completion records were submitted on the server. The test client was closed afterward.
+
 ## Outstanding acceptance checks
 
-- Complete a real one-batch NEI transfer from crafting-table 3x3 and Adventure Backpack grids, checking before/after quantities and container return.
-- Verify backpack storage counts once and occupied grid/cursor/full inventory guards in game.
-- Recheck the tooltip and completion-editor display fixes visually, including a small window.
+- Complete a real one-batch transfer of a recipe requiring all three crafting columns. The tested table recipe fits 2x2, including when transferred through the backpack's 3x3 area.
+- Verify occupied grid/cursor/full inventory guards in game, and worn/placed backpack variants. Handheld backpack storage accounting and cleanup passed.
+- Check tooltip placement at window edges and broader screen sizes.
 - Exercise death handling while the worklist is open on the latest build.
 - Validate larger actual GTNH groups, fluids, chance outputs and unavailable handlers beyond synthetic fixtures.
-- Connect to the authorized EMBU server with no server counterpart and check normal inventory/worklist behavior.
+- Verify a crafting transfer and completion persistence on multiplayer; the EMBU connection and read-only worklist check passed.
 - Rendered gameplay has only been exercised on Windows. Linux/macOS CI verifies compilation, packaging and automated calculations, not native gameplay.
 
-The website download remains `316542f`, SHA-256 `6532b16ee4c2dc2426c9a4727c00e9e79f132beceaa5ce64d97d896f6ffed5f1`. New crafting/backpack features are source-build work until their live checks are complete. Compilation and synthetic integration tests do not establish full gameplay compatibility.
+The development download is the final `f5b1e4b` CI JAR identified above. Compilation and synthetic integration tests do not establish full gameplay compatibility; the remaining acceptance checks are explicitly listed here.
