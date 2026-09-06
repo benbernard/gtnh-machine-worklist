@@ -55,7 +55,7 @@ final class ProgressScreen extends GuiScreen {
     private void recalculate() {
         remaining = 0;
         try {
-            RecipeChainMath math = plan.remainingChain(mc.thePlayer.inventory.mainInventory);
+            RecipeChainMath math = plan.remainingChain(parent.availableInventory());
             for (BookmarkItem result : math.recipeResults) if (WorklistPlan.outputKey(result)
                 .equals(WorklistPlan.outputKey(output()))) remaining = Math.addExact(remaining, result.amount);
             error = plan.progressWarning;
@@ -118,7 +118,7 @@ final class ProgressScreen extends GuiScreen {
                 quantity.getText()
                     .trim());
             if (button.id == 4) {
-                amount = plan.completeHalf(output(), mc.thePlayer.inventory.mainInventory);
+                amount = plan.completeHalf(output(), parent.availableInventory());
             }
             if (button.id != 4) plan.setCompleted(output(), amount);
             quantity.setText(Long.toString(amount));

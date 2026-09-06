@@ -94,8 +94,7 @@ public class WorklistScreen extends GuiScreen {
         boolean resultSlot = false;
         for (net.minecraft.inventory.Slot slot : gui.inventorySlots.inventorySlots) {
             if (slot instanceof net.minecraft.inventory.SlotCrafting) resultSlot = true;
-            if (!(slot.inventory instanceof net.minecraft.entity.player.InventoryPlayer) && slot.getHasStack())
-                return false;
+            if (CraftingInventory.occupiedCraftingSlot(gui, slot)) return false;
         }
         codechicken.nei.recipe.RecipeHandlerRef handler = codechicken.nei.recipe.RecipeHandlerRef.of(selected.id);
         return resultSlot && handler != null && handler.canCraft(gui);
@@ -134,7 +133,7 @@ public class WorklistScreen extends GuiScreen {
     private void refresh() {
         try {
             if (mc.thePlayer == null) return;
-            List<WorklistPlan.Step> all = plan.calculate(mc.thePlayer.inventory.mainInventory);
+            List<WorklistPlan.Step> all = plan.calculate(availableInventory());
             if (selected != null) {
                 WorklistPlan.Step replacement = null;
                 for (WorklistPlan.Step step : all) if (step.id.equals(selected.id)) replacement = step;
@@ -153,16 +152,17 @@ public class WorklistScreen extends GuiScreen {
         }
     }
 
+    ItemStack[] availableInventory() {
+        return CraftingInventory.snapshot(parent);
+    }
+
     private ItemStack[] copyInventory() {
-        ItemStack[] items = mc.thePlayer.inventory.mainInventory;
-        ItemStack[] copy = new ItemStack[items.length];
-        for (int i = 0; i < items.length; i++) copy[i] = items[i] == null ? null : items[i].copy();
-        return copy;
+        return availableInventory();
     }
 
     private boolean inventoryChanged() {
-        if (previousInventory == null) return true;
-        ItemStack[] items = mc.thePlayer.inventory.mainInventory;
+        ItemStack[] items = availableInventory();
+        if (previousInventory == null || items.length != previousInventory.length) return true;
         for (int i = 0; i < items.length; i++)
             if (!ItemStack.areItemStacksEqual(items[i], previousInventory[i])) return true;
         return false;
@@ -238,7 +238,7 @@ public class WorklistScreen extends GuiScreen {
         line(selected == null ? "MACHINE WORKLIST" : selected.machine, 14, 14, width - 194, 0x67dbc4);
         String subtitle = selected == null
             ? "NEI group " + plan.groupId
-                + " / Inventory + hotbar"
+                + (CraftingInventory.backpack(parent) ? " / Inventory + open backpack" : " / Inventory + hotbar")
                 + (plan.progressWarning != null ? " / Check manual progress"
                     : plan.completed.isEmpty() ? "" : " + manual completion")
             : selected.runs + " runs remaining / " + selected.readyRuns + " ready with current inventory";

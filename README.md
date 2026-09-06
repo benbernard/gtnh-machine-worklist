@@ -50,3 +50,9 @@ Do not commit Minecraft files, account data, worlds, or launcher configuration. 
 The current source adds separate Machines, Crafting, and All tabs. At wide GUI sizes an independently scrollable Overall missing inputs pane stays visible across tabs and recipe details; smaller windows use a Missing inputs view. The pane always covers the complete group, regardless of tab or readiness filter.
 
 Crafting recipe details have Craft 1 batch via NEI. Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the inventory grid only supports recipes that fit). NEI autocrafting must be enabled. The current container must still be open, with an empty grid, empty cursor, a free inventory slot, and matching inputs. The button returns to that container and asks NEI to craft one recipe batch; it does not run machines or automatically execute the entire group. Reopen the group to see resulting inventory changes. This new UI/action still needs live verification; the website download and screenshots are the older 316542f build.
+
+### Adventure's Backpack crafting
+
+The current source supports Adventure Backpack 1.3.13-GTNH through its existing NEI overlay. Open the backpack GUI, hover the NEI group, press F10, select Crafting, and open a recipe. Craft 1 batch via NEI uses the backpack's 3x3 crafting area. Leave its bottom-right nine storage slots empty before starting, keep the cursor empty, and leave a free player-inventory slot. Other backpack storage may remain occupied. Opening from the command instead uses the player inventory grid, not a closed backpack.
+
+While opened from that backpack, remaining quantities, readiness, missing inputs, and manual completion account for player inventory plus its 48 storage slots. Hidden crafting mirror slots and result/tool/fluid slots are excluded. This does not scan closed backpacks or tank fluids. The compatibility targets the layout shipped in GTNH 2.8.4 and still needs a live item-transfer check.

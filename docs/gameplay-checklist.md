@@ -48,3 +48,11 @@ Record the tested JAR SHA-256, target group, starting inventory, expected/actual
 - Open from a crafting table using F10. Select a ready shaped/shapeless recipe and craft exactly one batch through NEI. Verify item consumption and output, then reopen and check remaining runs.
 - Verify disabled crafting with an incompatible 2x2 grid, stale/closed container, full inventory, held cursor stack, occupied crafting grid, missing inputs, or NEI autocrafting disabled.
 - Verify the action never runs a machine recipe and does not apply manual off-inventory stock as available crafting input.
+
+## Adventure Backpack 1.3.13-GTNH
+
+- Open F10 from the backpack GUI with materials in ordinary storage and bottom-right 3x3 empty; verify Craft 1 batch via NEI consumes the correct inputs and yields one batch.
+- Compare readiness using player stock only, backpack stock only, and mixed stock; verify hidden mirror stacks are never counted twice.
+- Verify filled crafting slots disable the action without clearing contents. Unrelated tool/fluid/storage slots must not block it.
+- Move intermediate outputs into the open backpack and verify queue/missing-pane reduction; compare manual totals without double counting.
+- Close or replace the backpack container and verify stale actions are disabled; test the unchanged vanilla crafting-table path.
