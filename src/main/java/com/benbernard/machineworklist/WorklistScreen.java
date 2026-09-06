@@ -69,8 +69,6 @@ public class WorklistScreen extends GuiScreen {
                 y + 8,
                 width - left - 48,
                 0xe9bd72);
-            if (mouseX >= left && mouseX < width - 12 && mouseY >= y && mouseY < y + 32)
-                renderToolTip(item.itemStack, mouseX, mouseY);
         }
         line(
             "" + plan.missingMaterials.size() + " inputs / scroll this pane",
@@ -290,6 +288,14 @@ public class WorklistScreen extends GuiScreen {
         if (splitPane()) drawMissingPane(mouseX, mouseY);
         super.drawScreen(mouseX, mouseY, partialTicks);
         drawItemTooltip(mouseX, mouseY);
+        if (splitPane() && mouseX >= listRight() + 4
+            && mouseX < width - 12
+            && mouseY >= TOP
+            && mouseY < TOP + missingRows() * 32) {
+            int index = missingScroll + (mouseY - TOP) / 32;
+            if (index < plan.missingMaterials.size())
+                renderToolTip(plan.missingMaterials.get(index).itemStack, mouseX, mouseY);
+        }
     }
 
     private void drawItemTooltip(int x, int y) {

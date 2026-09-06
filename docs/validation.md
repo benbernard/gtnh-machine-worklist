@@ -1,54 +1,42 @@
 # Validation record
 
-## Automated checks
+## Automated checks — 2026-09-05
 
-Windows, JDK 25, `gradlew.bat spotlessApply build`: passes, 26 tests, no failures or skips, including manual completion.
+GitHub Actions [run 34003298371](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34003298371), commit `0ec6d40de76320662eced7cf27b69ff9dbe76cd5`: downloaded reports independently confirm **28 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `2c05f67efa5a4fed4d0b1a7d340441eaac70f8efcfa80d843d358e88e1bf0b9d`.
 
-Five manual-completion integration cases verify upstream reduction, inventory overlap without double counting, batch rounding, exact partial output counts, clearing/undo, saved-progress reload, fluid mB, and shared branch allocation. The completion editor and death-screen fix still need live gameplay validation; they are newer than the CI artifact tested below.
+The tests cover finite global stock allocation, overlapping ingredient alternatives, owned intermediate/finished items, shared branches and batch surplus, multiple outputs, fluid containers and mB, reusable molds/circuits with configuration, cycles, repeated calculations and an 80-stage chain. Integration fixtures run the pinned NEI 2.8.44-GTNH calculator in a Forge classloader. Manual-completion cases cover exact quantities, upstream reduction, inventory overlap, rounding, clearing and persisted reload. Two backpack layout tests cover its 48 storage slots and nine crafting positions; they do not execute the live backpack container or NEI transfer.
 
-GitHub Actions [run 33991055598](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/33991055598), commit `8b60fda4c546a4316443834d99aff80190acf2f7`: the build-and-test steps passed on `windows-latest`, `ubuntu-latest`, and `macos-latest`. Downloaded reports independently confirm 21 tests, zero failures, and zero skipped tests on each platform. All three production JARs have the same SHA-256: `911894b8697ff9f6216e524003778373e9e3d4b2473be5690264e1e29ab3bbda`.
+A local Windows/JDK 25 `spotlessApply build` also passed all 28 tests after the tooltip draw-order and completion-editor background fixes. These rendering fixes require a visual recheck. `git diff --check` passed.
 
-Seven stock-allocation tests exercise finite quantities, overlapping alternatives, reusable molds, fluid-sized quantities, and integer limits. Fourteen integration fixtures run the actual pinned NEI 2.8.44-GTNH chain calculator in a Forge classloader. They cover owned intermediates and finished targets, shared branches, phantom bookmark stock, repeated calculations, coproducts, multiple targets sharing batch surplus, finite fluid containers, stock split across slots, an 80-stage chain cut at an owned intermediate, missing reusable tools, cyclic recipes requiring external starting material, and consumed and reusable ingredients with required metadata/NBT configuration.
+## Live GTNH 2.8.4 checks
 
-### Latest cross-platform verification
+All checks use the separate Prism test instance and disposable **New World**. No production world or multiplayer inventory was modified.
 
-GitHub Actions [run 33993150298](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/33993150298), commit `316542f3db3489b83619c4dd76e8fdcf4cf78a85`: downloaded reports confirm 26 tests, zero failures, and zero skips on Windows, Ubuntu, and macOS. All three production `machineworklist-316542f.jar` artifacts have SHA-256 `6532b16ee4c2dc2426c9a4727c00e9e79f132beceaa5ce64d97d896f6ffed5f1`. This includes the manual completion implementation and death-screen fix; it does not validate their rendered UI.
+- Startup with the mod and F10 import of NEI group 16 passed.
+- With no materials, the Steam Oven chain showed 16 assembler, 164 steel bending and 32 wrought-iron bending runs.
+- With CI build `8b60fda`, adding 64 steel plates reduced steel bending to 100. Adding 64 steel ingots left readiness at zero until a configuration-1 programmed circuit was present; then exactly 64 steel bending runs became ready and sorted first.
+- Recipe details showed full batch inputs and the reusable circuit. Open NEI recipe reached the bending recipe; Escape returned to the worklist.
+- Client-command opening passed after opening inventory once to load bookmarks.
+- With CI build `316542f`, entering exactly 8 completed Steam Ovens and saving with Enter reduced the queue to 8 assembler, 82 steel bending and 16 wrought-iron bending runs. Original F2 screenshots are on the [website](https://machineworklist.crabanddog.com/#screenshots).
+- With CI build `0ec6d40`, the saved 8-oven completion survived restart. Machines showed 3 steps, Crafting 13 and All 16. The Crafting view included 8 Steam Ovens in 2 batches.
+- Half remaining changed the completed total from 8 to 12, then to 16, rounding the final half to a whole batch. The missing pane became empty. Clear this entry reset completion to zero and restored the outstanding external inputs.
+- The missing-input pane showed reusable circuits separately by configuration and scrolled independently. Ready only produced an empty queue while the overall missing-input pane stayed populated.
 
-On the next remote gameplay attempt, Minecraft window capture failed twice with `window capture timed out: timed out waiting on channel`, including after refreshing the returned window selection. Native input was stopped according to the Computer Use recovery instructions. The user is away; no physical interaction is assumed or required for automated build checks. Fresh gameplay screenshots and remaining interactive checks are still outstanding.
+## Issues found during verification
 
-## Live GTNH 2.8.4 check
+- Missing-item tooltips were drawn before subsequent rows, allowing rows to cover them. Moved tooltip rendering after the pane and buttons.
+- World waypoint labels obscured the completion editor. Applied the worklist's solid dark background and render-state setup to the editor.
+- The initial hand-authored crafting-table test fixture used the vanilla four-plank recipe. GTNH's actual shaped recipe uses two flint and two logs. The invalid fixture produced Recipe unavailable; this is not evidence of a working crafting transfer. A corrected fixture is being tested.
+- Native automation sometimes moves the displayed pointer without updating Minecraft's internal mouse position. Drag gestures delivered movement successfully. Unchanged screens after simple clicks are not counted as passing checks.
 
-Testing uses a separate Prism instance and a disposable local world. No production world or multiplayer server has been modified.
+## Outstanding acceptance checks
 
-- The client starts with the mod installed.
-- F10 over a saved NEI autocrafting group opens its worklist.
-- A steam-oven chain with an empty material inventory shows 16 assembler runs for high-pressure boiler tanks, 164 steel-plate bending runs, and 32 wrought-iron-plate bending runs.
-- All-steps mode includes four crafting batches producing 16 steam ovens.
-- The steel-plate detail shows 164 steel ingots and a reusable programmed circuit.
-- Opening the recipe reaches the NEI bending-machine recipe; Escape returns to the worklist.
-- Command opening works after NEI bookmarks have loaded.
+- Complete a real one-batch NEI transfer from both player/crafting-table and Adventure Backpack grids, checking before/after quantities and container return.
+- Verify backpack storage counts once and occupied grid/cursor/full inventory guards in game.
+- Recheck the tooltip and completion-editor display fixes visually, including a small window.
+- Exercise death handling while the worklist is open on the latest build.
+- Validate larger actual GTNH groups, fluids, chance outputs and unavailable handlers beyond synthetic fixtures.
+- Connect to the authorized EMBU server with no server counterpart and check normal inventory/worklist behavior.
+- Rendered gameplay has only been exercised on Windows. Linux/macOS CI verifies compilation, packaging and automated calculations, not native gameplay.
 
-### CI artifact inventory checks (2026-09-05)
-
-Rechecked the installed `8b60fda` CI artifact in the disposable New World, using saved group 16. With no materials, the machine queue showed 16 assembler runs, 164 steel-plate bending runs, and 32 wrought-iron-plate bending runs. Adding 64 steel plates reduced only the steel bending quantity to 100. Adding 64 steel ingots kept 100 runs remaining and readiness at zero without the circuit. Adding one programmed circuit with configuration 1 made exactly 64 steel bending runs ready and sorted that operation first.
-
-The test player subsequently died to a stray while the screen was open. The worklist detected the lost inventory and returned to 164 steel bending runs, but the death screen was only visible after closing the worklist. Further local testing should use a protected creative player. Automated pointer movement is currently unreliable in both the worklist and Minecraft's native respawn menu; button/filter checks are not recorded as passing. Keyboard navigation and client commands worked.
-
-## Outstanding checks
-
-- Recheck empty-list rendering, tooltips, scroll indicators, and recipe notes after installing the latest build.
-- Broaden inventory-change checks beyond the verified steam-oven plate/ingot/circuit sequence.
-- Check death handling while the worklist is open.
-- Validate larger actual GTNH groups, fluids, probabilistic outputs, reusable tools, cycles and unavailable handlers.
-- Check smaller screen layouts and scrolling.
-- Validate a multiplayer connection with no server counterpart.
-- Native gameplay has only been exercised on Windows. The CI matrix verifies compilation, packaging, and the automated calculation tests, not rendered gameplay on Linux/macOS.
-
-Local Ubuntu WSL was detected but cannot start because virtualization is disabled; Linux build validation therefore used GitHub Actions. No Windows system configuration was changed.
-
-Compilation and synthetic integration tests do not establish full gameplay or cross-platform compatibility.
-
-### Live exact completion and screenshots (2026-09-05)
-
-Installed CI build 316542f (verified SHA-256 above) in the separate Prism test instance. After loading survival inventory to initialize NEI bookmarks, group 16 showed 16 assembler, 164 steel bending, and 32 wrought-iron bending runs. Opened the completion editor with C, entered 8 completed Steam Ovens with the keyboard, saved with Enter, and returned with Escape. The queue then showed 8 assembler, 82 steel bending, and 16 wrought-iron bending runs. Original F2 screenshots of both queue states are published at https://machineworklist.crabanddog.com/#screenshots. This verifies exact entry and live recalculation, not the half-complete button, undo/restart, or multiplayer checks. The editor background also needs better contrast over large world waypoint labels. Automated mouse activation remained inconsistent in the native respawn screen and worklist; keyboard interaction worked.
-
+The website download remains `316542f`, SHA-256 `6532b16ee4c2dc2426c9a4727c00e9e79f132beceaa5ce64d97d896f6ffed5f1`. New crafting/backpack features are source-build work until their live checks are complete. Compilation and synthetic integration tests do not establish full gameplay compatibility.

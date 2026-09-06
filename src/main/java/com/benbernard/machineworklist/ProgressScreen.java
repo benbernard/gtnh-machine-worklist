@@ -66,7 +66,9 @@ final class ProgressScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int x, int y, float partialTicks) {
-        drawDefaultBackground();
+        org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_DEPTH_TEST);
+        net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
+        drawRect(0, 0, width, height, 0xf5101723);
         drawString(fontRendererObj, "MANUAL COMPLETION", 12, 14, 0x67dbc4);
         if (outputs.isEmpty()) {
             drawString(fontRendererObj, "No recipe outputs in this group.", 12, 42, 0xffffff);

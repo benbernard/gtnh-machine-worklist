@@ -4,7 +4,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Under development. The latest Windows, Linux, and macOS builds pass all 26 automated tests, including manual completion, and produce identical mod JARs. Live GTNH 2.8.4 checks verify selected-group import, inventory deduction, circuit-dependent readiness, and NEI recipe navigation. Manual completion, the death-screen fix, and multiplayer behavior still require gameplay validation.
+Under development. Windows, Linux, and macOS builds pass 28 automated tests and produce identical mod JARs. Live GTNH 2.8.4 checks verify selected-group import, inventory deduction, circuit-dependent readiness, recipe navigation, the three tabs, the missing-input pane, and exact/half/cleared manual completion. Crafting transfers, backpack integration, and multiplayer still require completed gameplay checks. See the validation record for the exact tested revisions.
 
 ## Use
 
@@ -12,7 +12,7 @@ Install the release JAR in a separate GTNH 2.8.4 instance's `mods` directory. Do
 
 Open inventory, hover an existing NEI autocrafting group, and press **F10**. The key can be changed in Minecraft's Controls settings. Alternatively, after opening inventory once, use `/machineworklist` to list group numbers and `/machineworklist 16` to open one.
 
-The default view lists machine operations still needed after accounting for inventory and hotbar. **All steps** includes crafting-table operations. Click a row to inspect full batch inputs and outputs, then **Open NEI recipe** to see the recipe's machine tier and settings. Escape returns to the previous view. **Missing inputs** lists outstanding external ingredients and missing reusable tools. Scroll to see more rows.
+The default **Machines** tab lists machine operations still needed after accounting for inventory and hotbar. **Crafting** lists manual crafting recipes; **All** combines them. Click a row to inspect full batch inputs and outputs, then **Open NEI recipe** to see the recipe's machine tier and settings. Escape returns to the previous view. **Overall missing inputs** lists outstanding external ingredients and missing reusable tools for the entire group; smaller windows use a separate **Missing inputs** view. Scroll to see more rows.
 
 Ready counts are evaluated separately for each operation; two ready operations may compete for the same stock. The remaining chain itself allocates inventory globally. Chests, machine inventories, and network storage are not scanned. Plans capture the selected bookmark recipes when opened; reopen after changing the NEI group.
 
