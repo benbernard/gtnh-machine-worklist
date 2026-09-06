@@ -48,6 +48,17 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         int group = ItemPanels.bookmarkPanel.getHoveredGroupId(false);
         if (group < 0) group = ItemPanels.bookmarkPanel.getHoveredGroupId(true);
         BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
+        if (group < 0) {
+            // A page with one crafting group has no ambiguous selection; also works
+            // for keyboard users whose pointer is outside the bookmark panel.
+            java.util.Set<Integer> craftingGroups = new java.util.HashSet<>();
+            for (int i = 0; i < grid.size(); i++) {
+                int candidate = grid.getBookmarkItem(i).groupId;
+                if (grid.isCraftingMode(candidate)) craftingGroups.add(candidate);
+            }
+            if (craftingGroups.size() == 1) group = craftingGroups.iterator()
+                .next();
+        }
         Minecraft mc = Minecraft.getMinecraft();
         if (group < 0 || !grid.isCraftingMode(group)) {
             mc.thePlayer.addChatMessage(

@@ -12,6 +12,8 @@ Install the release JAR in a separate GTNH 2.8.4 instance's `mods` directory. Do
 
 Open inventory, hover an existing NEI autocrafting group, and press **F10**. The key can be changed in Minecraft's Controls settings. Alternatively, after opening inventory once, use `/machineworklist` to list group numbers and `/machineworklist 16` to open one.
 
+If the current NEI bookmark page contains exactly one autocrafting group, F10 can open it without hovering. Pages with multiple groups still require selecting one by hover or group number.
+
 The default **Machines** tab lists machine operations still needed after accounting for inventory and hotbar. **Crafting** lists manual crafting recipes; **All** combines them. Click a row to inspect full batch inputs and outputs, then **Open NEI recipe** to see the recipe's machine tier and settings. Escape returns to the previous view. **Overall missing inputs** lists outstanding external ingredients and missing reusable tools for the entire group; smaller windows use a separate **Missing inputs** view. Scroll to see more rows.
 
 Ready counts are evaluated separately for each operation; two ready operations may compete for the same stock. The remaining chain itself allocates inventory globally. Chests, machine inventories, and network storage are not scanned. Plans capture the selected bookmark recipes when opened; reopen after changing the NEI group.
