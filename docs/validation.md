@@ -2,7 +2,7 @@
 
 ## Automated checks — 2026-09-05
 
-GitHub Actions [run 34003298371](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34003298371), commit `0ec6d40de76320662eced7cf27b69ff9dbe76cd5`: downloaded reports independently confirm **28 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `2c05f67efa5a4fed4d0b1a7d340441eaac70f8efcfa80d843d358e88e1bf0b9d`.
+GitHub Actions [run 34005305238](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34005305238), commit `bf334432be147ce9299072aac29777b88e6f13e4`: downloaded reports independently confirm **28 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `bef0a753df3847d8d0b9898b5b94a3bd93e91d03be7ec3cf3cce85e1cf4d3771`.
 
 The tests cover finite global stock allocation, overlapping ingredient alternatives, owned intermediate/finished items, shared branches and batch surplus, multiple outputs, fluid containers and mB, reusable molds/circuits with configuration, cycles, repeated calculations and an 80-stage chain. Integration fixtures run the pinned NEI 2.8.44-GTNH calculator in a Forge classloader. Manual-completion cases cover exact quantities, upstream reduction, inventory overlap, rounding, clearing and persisted reload. Two backpack layout tests cover its 48 storage slots and nine crafting positions; they do not execute the live backpack container or NEI transfer.
 
@@ -28,6 +28,9 @@ All checks use the separate Prism test instance and disposable **New World**. No
 - World waypoint labels obscured the completion editor. Applied the worklist's solid dark background and render-state setup to the editor.
 - The initial hand-authored crafting-table test fixture used the vanilla four-plank recipe. GTNH's actual shaped recipe uses two flint and two logs. The invalid fixture produced Recipe unavailable; this is not evidence of a working crafting transfer. A corrected fixture is being tested.
 - Native automation sometimes moves the displayed pointer without updating Minecraft's internal mouse position. Drag gestures delivered movement successfully. Unchanged screens after simple clicks are not counted as passing checks.
+
+- Opening through `/machineworklist` constructed an uninitialized inventory GUI, while NEI ingredient checks require its Minecraft reference. Initialized the parent before creating the worklist; the local build and all 28 tests pass. Live transfer verification remains outstanding.
+- A command-given Adventure Backpack without NBT crashed its own `InventoryBackpack.saveToNBT` during an ordinary inventory click, before opening the worklist. The disposable test fixture was backed up and initialized with backpack NBT. This crash does not establish either success or failure of worklist transfer compatibility.
 
 ## Outstanding acceptance checks
 

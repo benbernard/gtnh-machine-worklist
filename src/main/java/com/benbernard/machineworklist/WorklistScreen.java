@@ -31,6 +31,7 @@ public class WorklistScreen extends GuiScreen {
     private int ticks;
     private int tab; // 0 machines, 1 crafting, 2 all
     private int missingScroll;
+    private int keyboardRow = -1;
     private boolean readyOnly;
     private boolean showMissing;
     private String error;
@@ -250,7 +251,8 @@ public class WorklistScreen extends GuiScreen {
             0x67dbc4);
         else for (int index = scroll; index < Math.min(rowCount(), scroll + visibleRows()); index++) {
             int y = TOP + (index - scroll) * rowHeight();
-            boolean hovered = mouseX >= 12 && mouseX < listRight() - 12 && mouseY >= y && mouseY < y + rowHeight() - 4;
+            boolean hovered = (selected == null && !showMissing && index == keyboardRow)
+                || (mouseX >= 12 && mouseX < listRight() - 12 && mouseY >= y && mouseY < y + rowHeight() - 4);
             drawRect(12, y, listRight() - 12, y + rowHeight() - 4, hovered ? 0xff293b52 : 0xff202d40);
             if (selected != null) drawDetail(index, y);
             else if (showMissing) {
@@ -277,10 +279,9 @@ public class WorklistScreen extends GuiScreen {
                 0xa9b7cb);
         }
         line(
-            selected == null ? "Click a step for inputs. Ready counts apply to each step separately."
-                : selected.crafting
-                    ? "NEI craft needs an open compatible empty grid, empty cursor and a free inventory slot."
-                    : "Inputs show the full remaining batch. Molds/circuits are reusable.",
+            selected == null ? "1/2/3 tabs; arrows + Enter: recipe; R: ready; M: missing; C: progress."
+                : selected.crafting ? "F: craft 1 batch (empty grid/cursor, free slot). N: NEI. C: progress. Esc: back."
+                    : "N: NEI recipe. C: progress. Arrows: scroll. Esc: back. Tools are reusable.",
             14,
             height - 18,
             width - 28,
@@ -438,6 +439,47 @@ public class WorklistScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char character, int key) {
+        if (key >= org.lwjgl.input.Keyboard.KEY_1 && key <= org.lwjgl.input.Keyboard.KEY_3) {
+            selected = null;
+            keyboardRow = -1;
+            actionPerformed(new GuiButton(10 + key - org.lwjgl.input.Keyboard.KEY_1, 0, 0, ""));
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_UP || key == org.lwjgl.input.Keyboard.KEY_DOWN) {
+            int direction = key == org.lwjgl.input.Keyboard.KEY_DOWN ? 1 : -1;
+            if (selected == null && !showMissing && !steps.isEmpty()) {
+                keyboardRow = Math
+                    .max(0, Math.min(steps.size() - 1, keyboardRow < 0 ? scroll : keyboardRow + direction));
+                if (keyboardRow < scroll) scroll = keyboardRow;
+                if (keyboardRow >= scroll + visibleRows()) scroll = keyboardRow - visibleRows() + 1;
+            } else {
+                scroll += direction;
+                clampScroll();
+            }
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_RETURN && selected == null && !showMissing && !steps.isEmpty()) {
+            selected = steps.get(Math.max(0, Math.min(steps.size() - 1, keyboardRow < 0 ? scroll : keyboardRow)));
+            scroll = 0;
+            buttons();
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_F && selected != null && !org.lwjgl.input.Keyboard.isRepeatEvent()) {
+            actionPerformed(new GuiButton(7, 0, 0, ""));
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_N && selected != null && selected.recipeAvailable) {
+            actionPerformed(new GuiButton(4, 0, 0, ""));
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_R && selected == null) {
+            actionPerformed(new GuiButton(2, 0, 0, ""));
+            return;
+        }
+        if (key == org.lwjgl.input.Keyboard.KEY_M && selected == null && !splitPane()) {
+            actionPerformed(new GuiButton(3, 0, 0, ""));
+            return;
+        }
         if (key == org.lwjgl.input.Keyboard.KEY_C) {
             mc.displayGuiScreen(new ProgressScreen(this, plan, selected == null ? null : selected.outputs.get(0)));
             return;
