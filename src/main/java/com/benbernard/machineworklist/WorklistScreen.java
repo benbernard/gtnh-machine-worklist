@@ -96,7 +96,7 @@ public class WorklistScreen extends GuiScreen {
             if (CraftingInventory.occupiedCraftingSlot(gui, slot)) return false;
         }
         codechicken.nei.recipe.RecipeHandlerRef handler = codechicken.nei.recipe.RecipeHandlerRef.of(selected.id);
-        return resultSlot && handler != null && handler.canCraft(gui);
+        return resultSlot && handler != null && CraftingInventory.canCraft(handler, gui);
     }
 
     @Override
@@ -366,7 +366,7 @@ public class WorklistScreen extends GuiScreen {
                 codechicken.nei.recipe.RecipeHandlerRef handler = codechicken.nei.recipe.RecipeHandlerRef
                     .of(selected.id);
                 mc.displayGuiScreen(parent);
-                if (!handler.craft((net.minecraft.client.gui.inventory.GuiContainer) parent, 1))
+                if (!CraftingInventory.craft(handler, (net.minecraft.client.gui.inventory.GuiContainer) parent))
                     mc.thePlayer.addChatMessage(
                         new net.minecraft.util.ChatComponentText(
                             "NEI could not craft this batch. Check the grid and inventory."));

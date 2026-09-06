@@ -12,6 +12,18 @@ import net.minecraft.item.ItemStack;
 /** Optional integration with the exact pack version; no backpack dependency on other clients. */
 final class CraftingInventory {
 
+    static boolean canCraft(codechicken.nei.recipe.RecipeHandlerRef handler, GuiContainer gui) {
+        if (!backpack(gui)) return handler.canCraft(gui);
+        return handler.getOverlayHandler(gui) != null
+            && new BackpackCraftingOverlay().canCraft(gui, handler.handler, handler.recipeIndex);
+    }
+
+    static boolean craft(codechicken.nei.recipe.RecipeHandlerRef handler, GuiContainer gui) {
+        if (!backpack(gui)) return handler.craft(gui, 1);
+        return handler.getOverlayHandler(gui) != null
+            && new BackpackCraftingOverlay().craft(gui, handler.handler, handler.recipeIndex, 1);
+    }
+
     static boolean backpack(GuiScreen screen) {
         if (!(screen instanceof GuiContainer)) return false;
         GuiContainer gui = (GuiContainer) screen;

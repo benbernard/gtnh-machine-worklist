@@ -52,7 +52,8 @@ public class NeiChainIntegrationTest {
             "manualHalfCompletionRoundsBatchesAndCanBeUndone",
             "manualProgressSurvivesReloadAndCanBeCleared",
             "manualFluidProgressUsesMillibuckets",
-            "manualStockIsSharedAcrossBranches");
+            "manualStockIsSharedAcrossBranches",
+            "backpackCleanupExcludesStorageAndSupplyExcludesMirrors");
     }
 
     @Test
@@ -92,6 +93,25 @@ public class NeiChainIntegrationTest {
         NeiChainIntegrationTest fixture = new NeiChainIntegrationTest(fixtureName);
         NeiChainIntegrationTest.class.getMethod(fixtureName)
             .invoke(fixture);
+    }
+
+    public void backpackCleanupExcludesStorageAndSupplyExcludesMirrors() {
+        List<net.minecraft.inventory.Slot> slots = new ArrayList<>();
+        BackpackCraftingOverlay overlay = new BackpackCraftingOverlay();
+        for (int i = 0; i < 100; i++) {
+            net.minecraft.inventory.Slot slot = new net.minecraft.inventory.Slot(null, i, 0, 0);
+            slot.slotNumber = i;
+            slots.add(slot);
+            assertEquals(i < 84, overlay.canMoveFrom(slot, null));
+        }
+        java.util.Set<net.minecraft.inventory.Slot> cleanup = BackpackCraftingOverlay.craftingSlots(slots);
+        assertEquals(9, cleanup.size());
+        for (int i = 0; i < 100; i++) {
+            assertEquals(
+                Arrays.asList(65, 66, 67, 73, 74, 75, 81, 82, 83)
+                    .contains(i),
+                cleanup.contains(slots.get(i)));
+        }
     }
 
     public void existingIntermediatesReduceUpstreamMachineBatches() {
