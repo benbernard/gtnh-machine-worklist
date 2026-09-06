@@ -66,8 +66,14 @@ public class WorklistCommand extends CommandBase {
             return;
         }
         // GuiChat closes itself after executing a command; open on the following client tick.
-        ClientProxy.pendingScreen = new WorklistScreen(
-            new GuiInventory(mc.thePlayer),
-            WorklistPlan.capture(grid, group));
+        GuiInventory inventory = new GuiInventory(mc.thePlayer);
+        net.minecraft.client.gui.ScaledResolution resolution = new net.minecraft.client.gui.ScaledResolution(
+            mc,
+            mc.displayWidth,
+            mc.displayHeight);
+        // NEI checks the parent GUI's Minecraft reference when inspecting usable slots.
+        // A command-created inventory has not yet been displayed/initialized by Minecraft.
+        inventory.setWorldAndResolution(mc, resolution.getScaledWidth(), resolution.getScaledHeight());
+        ClientProxy.pendingScreen = new WorklistScreen(inventory, WorklistPlan.capture(grid, group));
     }
 }
