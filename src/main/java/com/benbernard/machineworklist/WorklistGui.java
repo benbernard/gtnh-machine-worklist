@@ -98,6 +98,10 @@ abstract class WorklistGui extends GuiScreen {
         return name;
     }
 
+    protected void openItemRecipe(ItemStack stack) {
+        if (stack != null) codechicken.nei.recipe.GuiCraftingRecipe.openRecipeGui("item", stack.copy());
+    }
+
     protected List<String> itemInformation(ItemStack stack) {
         List<String> lines = new ArrayList<>();
         lines.add(itemName(stack));
