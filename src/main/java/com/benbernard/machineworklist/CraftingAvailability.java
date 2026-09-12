@@ -66,12 +66,23 @@ final class CraftingAvailability {
         ItemStack[] inventory = CraftingInventory.snapshot(parent);
         if (step.readyRuns == 0) {
             boolean named = false;
+            java.util.Map<String, BookmarkItem> inputs = new java.util.LinkedHashMap<>();
+            java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
             for (BookmarkItem input : step.inputs) {
+                String key = WorklistPlan.outputKey(input);
+                inputs.putIfAbsent(key, input);
+                counts.put(
+                    key,
+                    input.factor == 0 ? Math.max(1, counts.getOrDefault(key, 0L))
+                        : Math.addExact(counts.getOrDefault(key, 0L), input.factor));
+            }
+            for (java.util.Map.Entry<String, BookmarkItem> entry : inputs.entrySet()) {
+                BookmarkItem input = entry.getValue();
                 long available = 0;
                 for (ItemStack stack : inventory)
                     if (stack != null && WorklistPlan.matchesInput(input, BookmarkItem.of(0, stack)))
                         available += BookmarkItem.of(0, stack).amount;
-                long needed = Math.max(1, input.factor);
+                long needed = counts.get(entry.getKey());
                 if (available < needed) {
                     result.reasons.add(
                         "Need " + (needed - available)
@@ -84,7 +95,18 @@ final class CraftingAvailability {
             if (!named) result.reasons.add(
                 "Ingredients overlap or do not match the selected recipe. Check its inputs and required tool settings in NEI.");
         }
-        long space = outputCapacity(mc.thePlayer.inventory.mainInventory, step.outputs, step.readyRuns);
+        int returnedSlots = 0;
+        if (handler != null) for (codechicken.nei.PositionedStack ingredient : handler.handler
+            .getIngredientStacks(handler.recipeIndex)) {
+                for (ItemStack option : ingredient.items) {
+                    if (option.getItem()
+                        .hasContainerItem(option) || option.stackSize == 0) {
+                        returnedSlots++;
+                        break;
+                    }
+                }
+            }
+        long space = outputCapacity(mc.thePlayer.inventory.mainInventory, step.outputs, step.readyRuns, returnedSlots);
         if (mc.thePlayer.inventory.getFirstEmptyStack() < 0)
             result.reasons.add("Player inventory is full. Free a slot for crafting transfers and returned tools.");
         else if (step.readyRuns > 0 && space == 0)
@@ -92,23 +114,29 @@ final class CraftingAvailability {
         if (result.reasons.isEmpty() && !CraftingInventory.canCraft(handler, gui)) result.reasons.add(
             "NEI cannot transfer these inputs in this container. Check the exact recipe and use a supported crafting table or backpack.");
         result.batches = result.reasons.isEmpty() ? Math.min(step.readyRuns, space) : 0;
-        result.limit = space < step.readyRuns ? "Limited by output space; free more player-inventory slots."
+        result.limit = space < step.readyRuns
+            ? "Limited by output/returned-tool space; free more player-inventory slots."
             : step.readyRuns < step.runs ? "Limited by ingredients or reusable tools; see recipe inputs."
                 : "All remaining batches of this recipe are ready.";
         return result;
     }
 
     static long outputCapacity(ItemStack[] inventory, List<BookmarkItem> outputs, long maximum) {
+        return outputCapacity(inventory, outputs, maximum, 0);
+    }
+
+    static long outputCapacity(ItemStack[] inventory, List<BookmarkItem> outputs, long maximum, int returnedSlots) {
         long low = 0, high = maximum;
         while (low < high) {
             long middle = low + (high - low) / 2 + 1;
-            if (outputsFit(inventory, outputs, middle)) low = middle;
+            if (outputsFit(inventory, outputs, middle, returnedSlots)) low = middle;
             else high = middle - 1;
         }
         return low;
     }
 
-    private static boolean outputsFit(ItemStack[] inventory, List<BookmarkItem> outputs, long batches) {
+    private static boolean outputsFit(ItemStack[] inventory, List<BookmarkItem> outputs, long batches,
+        int returnedSlots) {
         ItemStack[] slots = new ItemStack[inventory.length];
         for (int i = 0; i < inventory.length; i++) slots[i] = inventory[i] == null ? null : inventory[i].copy();
         for (BookmarkItem output : outputs) {
@@ -128,6 +156,8 @@ final class CraftingAvailability {
             }
             if (remaining > 0) return false;
         }
-        return true;
+        int empty = 0;
+        for (ItemStack slot : slots) if (slot == null) empty++;
+        return empty >= returnedSlots;
     }
 }

@@ -25,6 +25,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     public void init() {
         ClientRegistry.registerKeyBinding(open);
         GuiContainerManager.addInputHandler(this);
+        GuiContainerManager.addDrawHandler(new EntryFeedback());
         net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new WorklistCommand());
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
@@ -45,6 +46,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     @Override
     public boolean lastKeyTyped(GuiContainer gui, char character, int key) {
         if (Keyboard.isRepeatEvent() || key != open.getKeyCode()) return false;
+        if (!EntryFeedback.allow(gui)) return true;
         if (ItemPanels.bookmarkPanel == null) {
             Minecraft.getMinecraft()
                 .displayGuiScreen(new GroupScreen(gui));
@@ -69,7 +71,19 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
             mc.displayGuiScreen(new GroupScreen(gui));
             return true;
         }
-        mc.displayGuiScreen(new WorklistScreen(gui, WorklistPlan.capture(grid, group)));
+        try {
+            mc.displayGuiScreen(new WorklistScreen(gui, WorklistPlan.capture(grid, group)));
+        } catch (RuntimeException failure) {
+            mc.displayGuiScreen(
+                new InformationScreen(
+                    gui,
+                    "Cannot open this group",
+                    java.util.Arrays.asList(
+                        "Check the selected recipes in NEI and reopen the worklist. If this persists, include the following detail in a bug report.",
+                        failure.getClass()
+                            .getSimpleName() + ": "
+                            + failure.getMessage())));
+        }
         return true;
     }
 
