@@ -1,5 +1,11 @@
 # Validation record
 
+## Faster crafting for 0.1.0-beta.2 — 2026-09-11
+
+The current source uses NEI bulk transfers, with readiness/output checks between calls and short client-tick bursts. All 38 automated tests and packaging passed locally. Through the real player-inventory worklist, 64/256/349 batches completed in 30.5/113.2/156.6 ms; the one-batch F action remained exact. Both saved inventories matched all expected outputs and consumed inputs. The original test inventory, bookmarks and published beta JAR were restored afterward.
+
+These are instrumented singleplayer session timings, including scheduling and Worklist checks, excluding explicit server acknowledgment. The built JAR contains no instrumentation. See [the analysis, implementation plan and validation details](fast-crafting-plan.md) for the exact gameplay-tested candidate hash, original screenshots, measurement boundaries and remaining backpack/multiplayer/cancellation acceptance scope. Release artifacts and CI results are attached to [0.1.0-beta.2](https://github.com/benbernard/gtnh-machine-worklist/releases/tag/0.1.0-beta.2). The earlier release evidence below describes beta.1.
+
 ## Beta readiness pass — 2026-09-11
 
 ### Published artifact and final smoke check

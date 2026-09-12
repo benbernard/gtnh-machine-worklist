@@ -24,10 +24,11 @@ final class CraftingInventory {
             && new BackpackCraftingOverlay().canCraft(gui, handler.handler, handler.recipeIndex);
     }
 
-    static boolean craft(codechicken.nei.recipe.RecipeHandlerRef handler, GuiContainer gui) {
-        if (!backpack(gui)) return handler.craft(gui, 1);
+    static boolean craft(codechicken.nei.recipe.RecipeHandlerRef handler, GuiContainer gui, int batches) {
+        if (batches < 1 || batches > CraftingBurst.MAX_BATCHES) return false;
+        if (!backpack(gui)) return handler.craft(gui, batches);
         return handler.getOverlayHandler(gui) != null
-            && new BackpackCraftingOverlay().craft(gui, handler.handler, handler.recipeIndex, 1);
+            && new BackpackCraftingOverlay().craft(gui, handler.handler, handler.recipeIndex, batches);
     }
 
     static boolean backpack(GuiScreen screen) {

@@ -1,0 +1,34 @@
+[
+  {
+    "elapsed_ns": 30526100,
+    "requested": 64,
+    "completed": 64,
+    "calls": 1,
+    "max_multiplier": 64,
+    "batches_per_second": 2096.56654469454
+  },
+  {
+    "elapsed_ns": 113205800,
+    "requested": 256,
+    "completed": 256,
+    "calls": 4,
+    "max_multiplier": 64,
+    "batches_per_second": 2261.3682337830746
+  },
+  {
+    "elapsed_ns": 156609700,
+    "requested": 349,
+    "completed": 349,
+    "calls": 6,
+    "max_multiplier": 64,
+    "batches_per_second": 2228.469884049328
+  },
+  {
+    "elapsed_ns": 9202400,
+    "requested": 1,
+    "completed": 1,
+    "calls": 1,
+    "max_multiplier": 1,
+    "batches_per_second": 108.66730418151788
+  }
+]
