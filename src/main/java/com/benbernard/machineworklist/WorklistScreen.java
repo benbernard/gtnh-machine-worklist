@@ -136,6 +136,38 @@ public class WorklistScreen extends WorklistGui {
         if (selected == null) return;
         if (!selected.recipeAvailable) explanations
             .add("Recipe unavailable in NEI. Choose the recipe again in your bookmarks and reopen this group.");
+        if (!selected.crafting) {
+            explanations
+                .add("Run this recipe in the machine shown in NEI. Machine tier, power and contents are not scanned.");
+            if (selected.readyRuns == 0) {
+                java.util.Map<String, BookmarkItem> inputs = new java.util.LinkedHashMap<>();
+                java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
+                for (BookmarkItem input : selected.inputs) {
+                    String key = WorklistPlan.outputKey(input);
+                    inputs.putIfAbsent(key, input);
+                    counts.put(key, Math.addExact(counts.getOrDefault(key, 0L), Math.max(1, input.factor)));
+                }
+                boolean named = false;
+                for (java.util.Map.Entry<String, BookmarkItem> entry : inputs.entrySet()) {
+                    BookmarkItem input = entry.getValue();
+                    long available = 0;
+                    for (ItemStack stack : availableInventory())
+                        if (stack != null && WorklistPlan.matchesInput(input, BookmarkItem.of(0, stack)))
+                            available += BookmarkItem.of(0, stack).amount;
+                    long missing = counts.get(entry.getKey()) - available;
+                    if (missing > 0) {
+                        explanations.add(
+                            "Need " + missing
+                                + " more "
+                                + itemName(input.itemStack)
+                                + (input.factor == 0 ? " (reusable tool)." : " for one machine run."));
+                        named = true;
+                    }
+                }
+                if (!named) explanations.add(
+                    "The physical inputs overlap or do not match this recipe. Check its input choices and tool settings in NEI.");
+            }
+        }
         if (selected.crafting) {
             crafting = CraftingAvailability.inspect(parent, selected);
             if (crafting.reasons.isEmpty()) {
@@ -327,7 +359,7 @@ public class WorklistScreen extends WorklistGui {
         line(
             selected == null ? "Arrows + Enter: recipe; I: item; Tab: buttons; C: stock."
                 : selected.crafting ? "F: one; G: all; B: why; I: item; Tab: controls; Esc: back."
-                    : "N: NEI; C: stock; Enter: upstream; I: item; Tab: buttons.",
+                    : "N: NEI; B: why; C: stock; I: item; Enter: upstream.",
             14,
             height - 18,
             width - 28,
