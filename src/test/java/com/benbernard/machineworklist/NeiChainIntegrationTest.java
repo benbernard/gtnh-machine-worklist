@@ -55,6 +55,9 @@ public class NeiChainIntegrationTest {
             "consumedCircuitsAndRegistryLookalikesRemainPhysical",
             "machineDisplayOrdersReadyThenRemainingRuns",
             "machineDisplayReordersAfterStockChangesWithoutChangingCrafting",
+            "returnedCraftingToolsAllowBulkWithoutChangingStock",
+            "returnedToolDurabilityAndSimultaneousSlotsBoundTheBatch",
+            "consumedContainersDoNotBecomeReusableTools",
             "cyclicRecipesLeaveAFiniteExternalSeedRequirement",
             "reusableConfigurationMustMatchMetadataAndNbt",
             "consumedConfigurationCannotBeReplacedByUntaggedStock",
@@ -807,6 +810,125 @@ public class NeiChainIntegrationTest {
         List<RecipeId> ids = new ArrayList<>();
         for (WorklistPlan.Step step : steps) ids.add(step.id);
         return ids;
+    }
+
+    public static class ReturningTool extends Item {
+
+        ReturningTool() {
+            setMaxStackSize(1);
+            setMaxDamage(1000);
+        }
+
+        @Override
+        public boolean hasContainerItem(ItemStack stack) {
+            return true;
+        }
+
+        @Override
+        public ItemStack getContainerItem(ItemStack stack) {
+            // Deliberately mutate the supplied stack, as real mod tools can do.
+            stack.setItemDamage(stack.getItemDamage() + 1);
+            return stack.getItemDamage() >= getMaxDamage() ? null : stack;
+        }
+    }
+
+    public void returnedCraftingToolsAllowBulkWithoutChangingStock() throws Exception {
+        Item tool = new ReturningTool();
+        registerFixtureItem(tool, "fixture:returning_tool");
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "file-plates", Items.diamond, 1, 128, new ItemStack(Items.iron_ingot), new ItemStack(tool));
+        registerCrafting(recipes);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        ItemStack[] inventory = stock(
+            new ItemStack(Items.iron_ingot, 64),
+            new ItemStack(Items.iron_ingot, 64),
+            new ItemStack(tool));
+        WorklistPlan.Step step = plan.calculate(inventory)
+            .get(0);
+        assertEquals(128, step.runs);
+        assertEquals(64, step.readyRuns);
+        assertEquals(1, step.reusableInputs.size());
+        assertTrue(plan.missingMaterials.isEmpty());
+        assertEquals(
+            64,
+            new CraftingChain(plan, inventory)
+                .inspect(inventory, NeiChainIntegrationTest::fixtureAvailability).batches);
+        assertEquals(0, inventory[2].getItemDamage());
+        assertEquals(1, inventory[2].stackSize);
+        assertEquals(64, inventory[0].stackSize);
+        assertEquals(1, recipes.get(2).factor);
+        boolean paused = codechicken.nei.recipe.StackInfo.isPausedItemDamageSound();
+        codechicken.nei.recipe.StackInfo.pauseItemDamageSound(true);
+        assertEquals(64, CraftingToolUses.available(inventory[2]));
+        assertTrue(codechicken.nei.recipe.StackInfo.isPausedItemDamageSound());
+        codechicken.nei.recipe.StackInfo.pauseItemDamageSound(paused);
+        inventory[0] = new ItemStack(Items.diamond, 64);
+        inventory[2].setItemDamage(64);
+        step = plan.calculate(inventory)
+            .get(0);
+        assertEquals(64, step.runs);
+        assertEquals(64, step.readyRuns);
+        assertEquals(64, inventory[2].getItemDamage());
+    }
+
+    public void returnedToolDurabilityAndSimultaneousSlotsBoundTheBatch() throws Exception {
+        Item tool = new ReturningTool();
+        registerFixtureItem(tool, "fixture:returning_tool");
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(
+            recipes,
+            "two-tools",
+            Items.diamond,
+            1,
+            64,
+            new ItemStack(Items.iron_ingot),
+            new ItemStack(tool),
+            new ItemStack(tool));
+        registerCrafting(recipes);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 64), new ItemStack(tool));
+        assertEquals(
+            0,
+            plan.calculate(inventory)
+                .get(0).readyRuns);
+        inventory[2] = new ItemStack(tool, 1, 996);
+        assertEquals(
+            4,
+            plan.calculate(inventory)
+                .get(0).readyRuns);
+        assertEquals(996, inventory[2].getItemDamage());
+        inventory[2].setItemDamage(999);
+        assertEquals(
+            1,
+            plan.calculate(inventory)
+                .get(0).readyRuns);
+        inventory[2].setItemDamage(0);
+        assertEquals(
+            64,
+            plan.calculate(inventory)
+                .get(0).readyRuns);
+    }
+
+    public void consumedContainersDoNotBecomeReusableTools() throws Exception {
+        Item ingredient = new Item().setMaxStackSize(1)
+            .setContainerItem(Items.bucket);
+        registerFixtureItem(ingredient, "fixture:filled_container");
+        assertEquals(0, CraftingToolUses.available(new ItemStack(ingredient)));
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(
+            recipes,
+            "empty-container",
+            Items.diamond,
+            1,
+            64,
+            new ItemStack(Items.iron_ingot),
+            new ItemStack(ingredient));
+        registerCrafting(recipes);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        WorklistPlan.Step step = plan.calculate(stock(new ItemStack(Items.iron_ingot, 64), new ItemStack(ingredient)))
+            .get(0);
+        assertEquals(1, step.readyRuns);
+        assertTrue(step.reusableInputs.isEmpty());
     }
 
     public void reusableConfigurationMustMatchMetadataAndNbt() {

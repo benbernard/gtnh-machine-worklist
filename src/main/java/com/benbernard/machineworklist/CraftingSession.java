@@ -147,7 +147,8 @@ final class CraftingSession {
         } else if (action == CraftingSettlement.Action.READY) {
             PendingTransfer transfer = pending;
             pending = null;
-            acceptTransfer(transfer, CraftingInventory.snapshot(container));
+            if (acceptTransfer(transfer, CraftingInventory.snapshot(container)))
+                CraftingBurst.run(this::advanceBatch, System::nanoTime);
         } else {
             Minecraft.getMinecraft().ingameGUI
                 .func_110326_a("Returning crafting tools; waiting for inventory updates. Esc: stop.", false);

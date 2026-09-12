@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.8
+
+- Restore bulk readiness for positive-count crafting tools that return after use. One file or screwdriver can supply up to 64 batches, conservatively bounded by durability and all matching tool choices. Multiple tool slots still require separate physical tools; consumed containers remain consumed.
+- Resume clear-grid tool transfers on the next client tick and continue the next burst in that tick. Keep bounded recovery waits for actual leftovers instead of imposing a blanket quiet delay after every tool transfer.
+- Explain tool-aware previews, durability and recovery in game. Add three Forge/NEI regression fixtures; update settlement tests. Live speed and backpack/multiplayer behavior remain unmeasured while computer use is paused.
+
 ## 0.1.0-beta.7
 
 - Treat GregTech zero-count programmed circuit ingredients as virtual settings: exclude them from readiness blockers and missing materials while preserving their configuration in recipe details. Physical tools and consumed circuits remain required.

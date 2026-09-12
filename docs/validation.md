@@ -1,5 +1,11 @@
 # Validation record
 
+## Returned-tool bulk crafting for 0.1.0-beta.8 — 2026-09-12
+
+The local suite has 79 passing checks. Three new Forge/NEI fixtures cover one returning tool enabling 64-batch chain readiness, preserved damage/stock/source factors, durability and simultaneous tool-slot limits, and consumed containers. Settlement checks preserve blocked-grid recovery bounds and verify prompt clean-grid continuation. The [root-cause and implementation record](returned-tool-batching.md) distinguishes the one-batch readiness bug from beta.6’s added quiet wait.
+
+No new gameplay or runtime speed measurement was performed. The fixtures establish calculation and wait-policy behavior; real backpack and multiplayer throughput remain unmeasured.
+
 ## Virtual circuits and machine order for 0.1.0-beta.7 — 2026-09-12
 
 All 76 checks and the local `spotlessApply test build` passed. The suite includes five new Forge/NEI fixtures for virtual circuit configurations 0–24, preserving physical requirements and exact registry identity, ready/partial/waiting machine order, long run counts, inventory/manual-stock refreshes and unchanged crafting scheduling. The [implementation plan](virtual-circuits-and-machine-order.md) records the installed GregTech evidence, fixture-registration correction and release validation steps.

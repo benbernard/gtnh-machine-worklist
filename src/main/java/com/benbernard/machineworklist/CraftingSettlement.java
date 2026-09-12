@@ -23,9 +23,11 @@ final class CraftingSettlement {
 
     Action tick(boolean changed, boolean blocked, boolean recoverable) {
         if (++ticks > MAX_TICKS) return Action.STOP;
+        // A fresh client tick with an empty cursor/grid needs no artificial quiet period.
+        // Keep the latency-aware delay only before recovering actual leftovers.
+        if (!blocked) return Action.READY;
         quiet = changed ? 0 : quiet + 1;
         if (quiet < quietTicks) return Action.WAIT;
-        if (!blocked) return Action.READY;
         if (recoverable && recoveries < MAX_RECOVERIES) {
             recoveries++;
             quiet = 0;
