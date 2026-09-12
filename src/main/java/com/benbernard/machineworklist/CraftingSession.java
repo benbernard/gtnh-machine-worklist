@@ -18,6 +18,9 @@ final class CraftingSession {
     private CraftingChain chain;
     private long completed;
     private PendingTransfer pending;
+    private final CraftingTransactions transactions;
+    private int confirmationTicks;
+    private final long started = System.nanoTime();
 
     private static final class PendingTransfer {
 
@@ -47,6 +50,16 @@ final class CraftingSession {
         this.plan = plan;
         this.recipe = recipe;
         requested = count;
+        transactions = new CraftingTransactions(
+            Minecraft.getMinecraft()
+                .getNetHandler()
+                .getNetworkManager(),
+            container.inventorySlots.windowId);
+        CraftingDiagnostics.event(
+            "Start " + (recipe == null ? "chain" : "recipe")
+                + " in "
+                + container.inventorySlots.getClass()
+                    .getSimpleName());
     }
 
     static boolean running() {
@@ -74,6 +87,13 @@ final class CraftingSession {
 
     private void finish(String reason, boolean restore) {
         active = null;
+        transactions.close();
+        CraftingDiagnostics.event(
+            "Stop after " + completed
+                + " verified batches / "
+                + ((System.nanoTime() - started) / 1_000_000)
+                + " ms: "
+                + reason);
         String message = chain == null
             ? "Crafted " + completed
                 + " of "
@@ -119,6 +139,7 @@ final class CraftingSession {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.isDead || mc.thePlayer.getHealth() <= 0) {
             active = null;
+            transactions.close();
             return false;
         }
         if (mc.currentScreen != container || mc.thePlayer.openContainer != container.inventorySlots) {
@@ -129,6 +150,19 @@ final class CraftingSession {
     }
 
     private void settleTransfer() {
+        if (!transactions.ready()) {
+            if (++confirmationTicks > CraftingSettlement.MAX_TICKS) finish(
+                "The server has not confirmed the inventory transfer. Reopen the container before retrying.",
+                true);
+            return;
+        }
+        if (transactions.rejected()) {
+            finish(
+                "The server rejected an inventory transfer. Let the inventory refresh, then reopen the worklist "
+                    + "to recalculate actual stock. This transfer's output is unconfirmed.",
+                true);
+            return;
+        }
         net.minecraft.item.ItemStack[] state = CraftingInventory.containerSnapshot(container);
         boolean changed = !CraftingInventory.sameSnapshot(pending.observed, state);
         pending.observed = state;
@@ -143,7 +177,10 @@ final class CraftingSession {
                     + "reopening recalculates actual stock.",
                 true);
         } else if (action == CraftingSettlement.Action.RECOVER) {
+            transactions.begin();
             pending.returns.recover(container);
+            transactions.seal();
+            confirmationTicks = 0;
         } else if (action == CraftingSettlement.Action.READY) {
             PendingTransfer transfer = pending;
             pending = null;
@@ -195,6 +232,7 @@ final class CraftingSession {
             }
             CraftingSpace.Plan space = CraftingSpace.plan(container, current, batches);
             batches = (int) Math.min(batches, space.batches);
+            transactions.begin();
             if (batches < 1 || !CraftingSpace.execute(space, container)) {
                 finish("Storage changed or refused a transfer. Check the cursor and available storage space.", true);
                 return false;
@@ -202,6 +240,14 @@ final class CraftingSession {
             net.minecraft.item.ItemStack[] beforeInventory = CraftingInventory.snapshot(container);
             CraftingReturns returns = new CraftingReturns(current.inputs);
             boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(current.id), container, batches);
+            transactions.seal();
+            confirmationTicks = 0;
+            CraftingDiagnostics.event(
+                "Submitted " + batches
+                    + " batches of "
+                    + current.outputs.get(0).itemStack.getDisplayName()
+                    + "; NEI success="
+                    + crafted);
             PendingTransfer transfer = new PendingTransfer(
                 current,
                 beforeInventory,
@@ -209,14 +255,9 @@ final class CraftingSession {
                 crafted,
                 returns,
                 pingMillis());
-            // Final and partially successful transfers need the same cleanup as intermediate ones.
-            // Ordinary empty-grid recipes retain the existing fast burst path.
-            if (returns.hasTools() || !EntryFeedback.reasons(container)
-                .isEmpty()) {
-                pending = transfer;
-                return false;
-            }
-            return acceptTransfer(transfer, CraftingInventory.snapshot(container));
+            // A clean prediction is not proof that the server has processed the bulk transfer.
+            pending = transfer;
+            return false;
         } catch (RuntimeException failure) {
             finish(
                 "Crafting stopped. Check the container before retrying: " + failure.getClass()
