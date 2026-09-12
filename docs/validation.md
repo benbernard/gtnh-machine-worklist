@@ -2,6 +2,16 @@
 
 ## Beta readiness pass — 2026-09-11
 
+### Published artifact and final smoke check
+
+[0.1.0-beta.1](https://github.com/benbernard/gtnh-machine-worklist/releases/tag/0.1.0-beta.1) is published from `e127cdbde62e054db24779ba3edc1ef94803b42d`. [Tagged CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34662896448) passed on all three platforms. The three downloaded production JARs and the locally packaged gameplay-tested JAR match exactly: 71,927 bytes, SHA-256 `24dcb0a0711b8311134aadb525651c27d8df614b975d7e242cfd4b20421dc184`.
+
+The exact release JAR started and reopened the disposable world. Eight saved pistons remained recorded after the full restart; previously crafted tables and planks were still present. One stick batch completed 1/1, reducing the bulk preview from six to five batches; bulk then completed 5/5. Pressing F afterward explained the precise two-plank shortage. [Final bulk result](evidence/beta-release-bulk-result.png).
+
+Mouse-wheel selection plus Enter opened the Steam Oven group. A waiting assembler explicitly named six missing steel casings and a reusable configuration-6 programmed circuit, with readable text at the small viewport. [Machine blocker capture](evidence/beta-machine-blockers.png). These checks supplement the earlier pass below; unverified cases remain listed explicitly.
+
+The updated public guide was observed after the Gitea deployment. Desktop/390px layouts, navigation, keyboard skip-to-download and all image assets were checked. Chrome's automation blocked the separate plain-text checksum and health URLs (`ERR_BLOCKED_BY_CLIENT`); those browser checks are not claimed as passing. CopyParty remained unauthenticated, so release evidence is published in this repository and the guide.
+
 All new interactive checks below were performed through computer use in the separate **Crafting Helper Test** Prism instance and disposable **New World**. Builds/package generation used Gradle; the repository's existing CI runs its automated suite on pushes. No production world or server inventory was changed.
 
 - Feature commit `61bd9a8` passed [Windows, Ubuntu and macOS CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34661029188). The suite now contains 33 checks, including bulk output yield, shared capacity, NBT identity, unstackable outputs and large counts. The final beta also reserves space for returned tools/containers.
