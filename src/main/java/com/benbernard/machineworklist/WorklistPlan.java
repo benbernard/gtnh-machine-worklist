@@ -25,6 +25,7 @@ public final class WorklistPlan {
 
     public final int groupId;
     private final List<BookmarkItem> source;
+    private Map<RecipeId, Long> requestedRoots;
     final Map<String, Long> completed = new LinkedHashMap<>();
     String progressWarning;
     private java.nio.file.Path progressFile;
@@ -218,6 +219,10 @@ public final class WorklistPlan {
     RecipeChainMath remainingChain(ItemStack[] inventory) {
         // Collapsing is a display preference, not permission to stop traversing a chain.
         RecipeChainMath math = RecipeChainMath.of(source, Collections.emptySet());
+        if (requestedRoots != null) {
+            math.outputRecipes.clear();
+            math.outputRecipes.putAll(requestedRoots);
+        }
         // Plain bookmarks are not proof of ownership. Supply comes only from actual inventory.
         math.initialItems.clear();
         Map<BookmarkItem, BookmarkItem> supplies = new LinkedHashMap<>();
@@ -268,6 +273,40 @@ public final class WorklistPlan {
             originals.forEach((item, original) -> item.itemStack = original);
         }
         return math;
+    }
+
+    /** Freeze the selected recipe's remaining demand and existing NEI dependency choices. */
+    WorklistPlan chainRequest(RecipeId target, ItemStack[] inventory) {
+        WorklistPlan request;
+        if (target == null) {
+            request = new WorklistPlan(groupId, source);
+        } else {
+            RecipeChainMath current = remainingChain(inventory);
+            java.util.Set<RecipeId> included = new java.util.LinkedHashSet<>();
+            included.add(target);
+            boolean changed;
+            do {
+                changed = false;
+                for (Map.Entry<BookmarkItem, BookmarkItem> link : current.preferredItems.entrySet())
+                    if (included.contains(link.getKey().recipeId)) changed |= included.add(link.getValue().recipeId);
+            } while (changed);
+            List<BookmarkItem> selected = new ArrayList<>();
+            for (BookmarkItem item : source) if (included.contains(item.recipeId)) selected.add(item);
+            request = new WorklistPlan(groupId, selected);
+            long remaining = 0, creditedBatches = Long.MAX_VALUE;
+            for (BookmarkItem output : current.recipeResults) if (target.equals(output.recipeId) && output.factor > 0) {
+                remaining = Math.max(remaining, output.amount / output.factor);
+                long credit = 0;
+                for (BookmarkItem stock : current.initialItems)
+                    if (outputKey(output).equals(outputKey(stock))) credit = Math.addExact(credit, stock.amount);
+                creditedBatches = Math.min(creditedBatches, credit / output.factor);
+            }
+            request.requestedRoots = Collections.singletonMap(
+                target,
+                Math.addExact(remaining, creditedBatches == Long.MAX_VALUE ? 0 : creditedBatches));
+        }
+        request.completed.putAll(completed);
+        return request;
     }
 
     private static void normalizeFluids(List<BookmarkItem> items, Map<BookmarkItem, ItemStack> originals) {

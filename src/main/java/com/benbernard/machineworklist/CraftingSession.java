@@ -15,6 +15,7 @@ final class CraftingSession {
     private final WorklistPlan plan;
     private final RecipeId recipe;
     private final long requested;
+    private CraftingChain chain;
     private long completed;
 
     private CraftingSession(WorklistScreen owner, GuiContainer container, WorklistPlan plan, RecipeId recipe,
@@ -41,9 +42,18 @@ final class CraftingSession {
         if (active != null) active.advance();
     }
 
+    static void startChain(WorklistScreen owner, GuiContainer container, CraftingChain chain) {
+        if (active != null) return;
+        active = new CraftingSession(owner, container, chain.plan, null, 0);
+        active.chain = chain;
+        Minecraft.getMinecraft()
+            .displayGuiScreen(container);
+    }
+
     private void finish(String reason, boolean restore) {
         active = null;
-        String message = "Crafted " + completed + " of " + requested + " requested batches. " + reason;
+        String message = chain == null ? "Crafted " + completed + " of " + requested + " requested batches. " + reason
+            : "Crafted " + chain.completed + " batches across " + chain.craftedRecipes() + " recipes. " + reason;
         if (restore) owner.craftingFinished(message);
         else Minecraft.getMinecraft().ingameGUI.func_110326_a(message, false);
     }
@@ -62,30 +72,44 @@ final class CraftingSession {
             finish("Stopped because the crafting container changed or closed.", false);
             return false;
         }
-        if (completed >= requested) {
+        if (chain == null && completed >= requested) {
             finish("Request complete.", true);
             return false;
         }
         try {
             WorklistPlan.Step current = null;
-            for (WorklistPlan.Step step : plan.calculate(CraftingInventory.snapshot(container)))
-                if (step.id.equals(recipe)) current = step;
-            if (current == null) {
-                finish("No work remains for this recipe.", true);
-                return false;
+            long availableBatches;
+            if (chain != null) {
+                CraftingChain.Selection selection = chain.inspect(
+                    CraftingInventory.snapshot(container),
+                    step -> CraftingAvailability.inspect(container, step));
+                if (selection.next == null) {
+                    finish(selection.stoppedReason(), true);
+                    return false;
+                }
+                current = selection.next;
+                availableBatches = selection.batches;
+            } else {
+                for (WorklistPlan.Step step : plan.calculate(CraftingInventory.snapshot(container)))
+                    if (step.id.equals(recipe)) current = step;
+                if (current == null) {
+                    finish("No work remains for this recipe.", true);
+                    return false;
+                }
+                CraftingAvailability available = CraftingAvailability.inspect(container, current);
+                if (!available.reasons.isEmpty()) {
+                    finish(available.reasons.get(0), true);
+                    return false;
+                }
+                availableBatches = Math.min(requested - completed, available.batches);
             }
-            CraftingAvailability available = CraftingAvailability.inspect(container, current);
-            if (!available.reasons.isEmpty()) {
-                finish(available.reasons.get(0), true);
-                return false;
-            }
-            int batches = (int) Math.min(maximumBatches, Math.min(requested - completed, available.batches));
+            int batches = (int) Math.min(maximumBatches, availableBatches);
             if (batches < 1) {
                 finish("No more batches are ready. Check the inputs and available output space.", true);
                 return false;
             }
             long before = visibleOutput(current);
-            boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(recipe), container, batches);
+            boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(current.id), container, batches);
             int verified = CraftingBurst
                 .verifiedBatches(before, visibleOutput(current), current.outputs.get(0).factor, batches);
             if (verified < 0) {
@@ -95,15 +119,19 @@ final class CraftingSession {
                 return false;
             }
             completed += verified;
+            if (chain != null) chain.record(current.id, verified);
             if (!crafted || verified != batches) {
                 finish("NEI stopped before completing the transfer. Check the grid, inputs and output space.", true);
                 return false;
             }
-            if (completed >= requested) {
+            if (chain == null && completed >= requested) {
                 finish("Request complete.", true);
                 return false;
             }
-            mc.ingameGUI.func_110326_a("Crafting " + completed + "/" + requested + " batches. Esc: stop.", false);
+            mc.ingameGUI.func_110326_a(
+                chain == null ? "Crafting " + completed + "/" + requested + " batches. Esc: stop."
+                    : "Chain: " + chain.completed + " batches / " + chain.craftedRecipes() + " recipes. Esc: stop.",
+                false);
             return true;
         } catch (RuntimeException failure) {
             finish(
