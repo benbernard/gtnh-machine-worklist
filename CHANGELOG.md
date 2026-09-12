@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.10
+
+- Prefer ready upstream recipes before downstream consumers so partial intermediate stock does not cause repeated small recipe switches. Continue bounded bulk transfers until remaining intermediate demand is met or production is blocked.
+- Fall back to ready consumers/independent branches when ingredients, tools or space block a producer. Preserve exact selected targets, yield, finite execution budgets and per-transfer checks.
+- Explain batch scheduling in game; add three Forge/NEI scheduling fixtures for partial rod stock, two-stack intermediate yields and space-pressure fallback.
+
 ## 0.1.0-beta.9
 
 - Use Tinkers' exposed attached storage as physical ingredients, with extraction permissions and duplicate slot views handled consistently in snapshots and NEI transfers.

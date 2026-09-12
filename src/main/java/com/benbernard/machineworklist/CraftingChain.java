@@ -31,7 +31,7 @@ final class CraftingChain {
         Selection result = new Selection();
         result.remainingRecipes = pending.size();
         for (WorklistPlan.Step step : pending) if (step.crafting) result.craftingRecipes++;
-        for (WorklistPlan.Step step : consumersFirst(pending)) {
+        for (WorklistPlan.Step step : producersFirst(pending)) {
             if (!step.crafting) {
                 result.reason("Manual operation remains: " + step.machine + " / " + name(step) + ".");
                 continue;
@@ -70,24 +70,29 @@ final class CraftingChain {
         return step.outputs.get(0).itemStack.getDisplayName();
     }
 
-    private static List<WorklistPlan.Step> consumersFirst(List<WorklistPlan.Step> steps) {
+    /** Prefer bulk intermediates before consuming small partial supplies; blocked producers do not block consumers. */
+    private static List<WorklistPlan.Step> producersFirst(List<WorklistPlan.Step> steps) {
         Map<RecipeId, WorklistPlan.Step> remaining = new LinkedHashMap<>();
-        Map<RecipeId, Integer> consumers = new LinkedHashMap<>();
-        for (WorklistPlan.Step step : steps) {
-            remaining.put(step.id, step);
-            for (RecipeId dependency : step.dependencies) consumers.merge(dependency, 1, Integer::sum);
-        }
+        Map<RecipeId, Integer> dependencies = new LinkedHashMap<>();
+        Map<RecipeId, List<WorklistPlan.Step>> consumers = new LinkedHashMap<>();
+        for (WorklistPlan.Step step : steps) remaining.put(step.id, step);
+        for (WorklistPlan.Step step : steps)
+            for (RecipeId dependency : step.dependencies) if (remaining.containsKey(dependency)) {
+                dependencies.merge(step.id, 1, Integer::sum);
+                consumers.computeIfAbsent(dependency, ignored -> new ArrayList<>())
+                    .add(step);
+            }
         java.util.ArrayDeque<WorklistPlan.Step> ready = new java.util.ArrayDeque<>();
-        for (WorklistPlan.Step step : steps) if (!consumers.containsKey(step.id)) ready.add(step);
+        for (WorklistPlan.Step step : steps) if (!dependencies.containsKey(step.id)) ready.add(step);
         List<WorklistPlan.Step> ordered = new ArrayList<>();
         while (!ready.isEmpty()) {
             WorklistPlan.Step step = ready.remove();
             remaining.remove(step.id);
             ordered.add(step);
-            for (RecipeId dependency : step.dependencies)
-                if (consumers.merge(dependency, -1, Integer::sum) == 0 && remaining.containsKey(dependency))
-                    ready.add(remaining.get(dependency));
+            for (WorklistPlan.Step consumer : consumers.getOrDefault(step.id, java.util.Collections.emptyList()))
+                if (dependencies.merge(consumer.id, -1, Integer::sum) == 0) ready.add(consumer);
         }
+        // Cycles retain deterministic ordering and the original finite per-recipe execution budget.
         ordered.addAll(remaining.values());
         return ordered;
     }

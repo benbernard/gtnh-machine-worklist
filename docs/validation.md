@@ -1,5 +1,9 @@
 # Validation record
 
+## Bulk chain scheduling for 0.1.0-beta.10 - 2026-09-12
+
+Three new Forge/NEI fixtures cover partial intermediate stock, recipe yield producing two stacks before consumption, and downstream fallback under output-space pressure. The suite contains 88 checks. See [the scheduling record](bulk-chain-scheduling.md). Live gameplay and timing were not performed while computer use is paused.
+
 ## Open-container storage for 0.1.0-beta.9 — 2026-09-12
 
 Six added Forge/NEI fixtures cover exposed storage permissions/deduplication, backpack output boundaries, full-player bulk workspace, stack limits/NBT/tool reservations, refused-transfer restoration and container closure. Station grid-offset fixtures now include attached storage supplies. See [the implementation record](open-container-storage.md).

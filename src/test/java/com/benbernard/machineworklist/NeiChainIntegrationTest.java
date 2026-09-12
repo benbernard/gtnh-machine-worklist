@@ -86,6 +86,9 @@ public class NeiChainIntegrationTest {
             "bulkOutputCapacityPreservesNbtAndRealInventory",
             "bulkOutputCapacityHandlesNonStackablesAndHugeCounts",
             "chainCraftsThreeStagesAndStopsAtExactTarget",
+            "chainBatchesRodsBeforeConsumingPartialSupply",
+            "chainUsesRecipeYieldForTwoStacksOfIntermediates",
+            "chainConsumesIntermediatesWhenProducerSpaceIsBlocked",
             "chainSharesIngredientsAndBatchSurplus",
             "selectedChainExcludesOtherTargets",
             "selectedChainPreservesOwnedPartialBatches",
@@ -1330,6 +1333,81 @@ public class NeiChainIntegrationTest {
         assertEquals(0, count(inventory, Items.redstone));
         assertEquals(24, chain.completed);
         assertEquals(3, chain.craftedRecipes());
+    }
+
+    public void chainBatchesRodsBeforeConsumingPartialSupply() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId rods = recipe(recipes, "iron rods", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
+        RecipeId longs = recipe(recipes, "long iron rods", Items.diamond, 1, 64, Items.gold_ingot, 2);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(
+            new ItemStack(Items.iron_ingot, 64),
+            new ItemStack(Items.iron_ingot, 62),
+            new ItemStack(Items.gold_ingot, 2));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        RecipeId[] expected = { rods, rods, longs };
+        int[] batches = { 64, 62, 64 };
+        for (int i = 0; i < expected.length; i++) {
+            CraftingChain.Selection next = chain.inspect(inventory, NeiChainIntegrationTest::bulkFixtureAvailability);
+            assertEquals(expected[i], next.next.id);
+            assertEquals(batches[i], next.batches);
+            transfer(chain, next, inventory);
+        }
+        assertEquals(64, count(inventory, Items.diamond));
+        assertEquals(0, count(inventory, Items.gold_ingot));
+        assertEquals(0, chain.inspect(inventory, NeiChainIntegrationTest::bulkFixtureAvailability).remainingRecipes);
+    }
+
+    public void chainUsesRecipeYieldForTwoStacksOfIntermediates() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId rods = recipe(recipes, "two rods", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        RecipeId longs = recipe(recipes, "long rods", Items.diamond, 1, 64, Items.gold_ingot, 2);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 64));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        CraftingChain.Selection next = chain.inspect(inventory, NeiChainIntegrationTest::bulkFixtureAvailability);
+        assertEquals(rods, next.next.id);
+        assertEquals(64, next.batches);
+        transfer(chain, next, inventory);
+        assertEquals(128, count(inventory, Items.gold_ingot));
+        next = chain.inspect(inventory, NeiChainIntegrationTest::bulkFixtureAvailability);
+        assertEquals(longs, next.next.id);
+        assertEquals(64, next.batches);
+        transfer(chain, next, inventory);
+        assertEquals(64, count(inventory, Items.diamond));
+        assertEquals(0, chain.inspect(inventory, NeiChainIntegrationTest::bulkFixtureAvailability).remainingRecipes);
+    }
+
+    public void chainConsumesIntermediatesWhenProducerSpaceIsBlocked() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId rods = recipe(recipes, "rods", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
+        RecipeId longs = recipe(recipes, "long rods", Items.diamond, 1, 64, Items.gold_ingot, 2);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 64), new ItemStack(Items.iron_ingot, 64));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        java.util.function.Function<WorklistPlan.Step, CraftingAvailability> availability = step -> {
+            CraftingAvailability result = bulkFixtureAvailability(step);
+            // Model only one stack of usable intermediate space. Downstream crafting frees it.
+            if (step.id.equals(rods))
+                result.batches = Math.min(result.batches, 64 - count(inventory, Items.gold_ingot));
+            return result;
+        };
+        RecipeId[] expected = { rods, longs, rods, longs };
+        int[] batches = { 64, 32, 64, 32 };
+        for (int i = 0; i < expected.length; i++) {
+            CraftingChain.Selection next = chain.inspect(inventory, availability);
+            assertEquals(expected[i], next.next.id);
+            assertEquals(batches[i], next.batches);
+            transfer(chain, next, inventory);
+        }
+        assertEquals(64, count(inventory, Items.diamond));
+        assertEquals(0, chain.inspect(inventory, availability).remainingRecipes);
+    }
+
+    private static CraftingAvailability bulkFixtureAvailability(WorklistPlan.Step step) {
+        CraftingAvailability result = fixtureAvailability(step);
+        result.batches = Math.min(CraftingBurst.MAX_BATCHES, result.batches);
+        return result;
     }
 
     public void chainSharesIngredientsAndBatchSurplus() throws Exception {
