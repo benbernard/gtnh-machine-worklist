@@ -1,5 +1,13 @@
 # Validation record
 
+## Final gameplay and in-game help for 0.1.0-beta.4 — 2026-09-12
+
+All 50 automated tests passed locally and on Windows, Ubuntu and macOS. This pass found and fixed external-stock accounting during chains, brief backpack synchronization states, stale-container Back navigation and overlapping wide-layout controls. A regression test first reproduced the stock defect and now passes, including persistence and save-failure rollback.
+
+Live Windows GTNH 2.8.4 checks exercised single batches and multi-recipe chains through the player 2×2 grid, placed crafting table and handheld backpack; full-inventory refusal/recovery; held-cursor and occupied-grid preservation; exact/half/clear stock and restart persistence; filters and machine-operation explanations; the eight-table example; NEI recipe navigation; and disabling/re-enabling NEI autocrafting through its documented menu. Six in-game help topics cover setup, queue interpretation, F/G scope, stock, blockers and controls, with readable small-window text and visible scroll ranges.
+
+The [final gameplay audit](final-gameplay-audit.md) records the three candidates, failures and fixes, screenshots, exact saved counts and remaining acceptance scope. Both saved inventories matched expected quantities after normal exits. Original test inventories, bookmarks, progress and settings were restored and verified. Multiplayer crafting, returned-tool recipes, cancellation/death mid-chain, custom NEI group creation from scratch and native Linux/macOS gameplay remain unverified live; this is a beta release.
+
 ## Recipe chains for 0.1.0-beta.3 — 2026-09-11
 
 All 47 automated checks and the local build passed. Live player-grid tests exercised log → plank → stick chains through the actual G action, both from a selected downstream recipe and from the group queue. Existing outputs reduced later requests, exhausted raw materials produced a partial-progress message, and supplying the missing logs allowed the chain to resume to exactly 200 sticks. F still performed exactly one batch. Both saved inventories matched expected consumption and outputs, with unrelated items unchanged.

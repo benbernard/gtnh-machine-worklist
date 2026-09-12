@@ -2,7 +2,7 @@
 
 This is a test procedure, not a record of passed checks. Use the separate GTNH 2.8.4 Prism instance and disposable local world for item-giving commands.
 
-The [validation record](validation.md) now includes beta.1 handheld-backpack bulk crafting, full nine-slot fence transfers in backpack and placed table, incompatible-2x2 refusal, and full-inventory refusal/recovery. Retain these procedures for regression testing; do not treat them as still-unverified results. Remaining live coverage includes partially full output capacity, returned tools, NEI disabled, custom NEI group creation from scratch, mid-request cancellation/death, worn/placed backpacks, multiplayer and native Linux/macOS gameplay.
+The [validation record](validation.md) and [final beta.4 audit](final-gameplay-audit.md) include player-grid, placed-table and handheld-backpack recipe chains, full nine-slot fence transfers, incompatible-2x2 refusal, full-inventory refusal/recovery, stock accounting/persistence, in-game help and NEI-disabled explanation plus re-enabling through the actual menu. Retain these procedures for regression testing; do not treat them as still-unverified results. Remaining live coverage includes partially full output capacity, returned tools, custom NEI group creation from scratch, mid-request cancellation/death, worn/placed backpacks, multiplayer and native Linux/macOS gameplay.
 
 ## Recorded steam-oven group
 
