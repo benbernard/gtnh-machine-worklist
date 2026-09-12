@@ -14,6 +14,13 @@ abstract class WorklistGui extends GuiScreen {
 
     protected int focusedButton = -1;
 
+    protected void returnTo(GuiScreen parent) {
+        if (parent instanceof net.minecraft.client.gui.inventory.GuiContainer && (mc.thePlayer == null
+            || mc.thePlayer.openContainer != ((net.minecraft.client.gui.inventory.GuiContainer) parent).inventorySlots))
+            mc.displayGuiScreen(null);
+        else mc.displayGuiScreen(parent);
+    }
+
     protected boolean focusKey(int key) {
         if (key == Keyboard.KEY_TAB && !buttonList.isEmpty()) {
             int current = -1;

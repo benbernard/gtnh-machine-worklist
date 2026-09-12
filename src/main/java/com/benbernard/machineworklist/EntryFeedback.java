@@ -24,7 +24,7 @@ final class EntryFeedback extends Gui implements IContainerDrawHandler {
         return false;
     }
 
-    private static List<String> reasons(GuiContainer gui) {
+    static List<String> reasons(GuiContainer gui) {
         List<String> reasons = new ArrayList<>();
         if (gui.mc.thePlayer.inventory.getItemStack() != null)
             reasons.add("Put the item on your cursor in a slot before opening the worklist.");

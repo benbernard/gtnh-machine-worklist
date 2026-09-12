@@ -146,6 +146,38 @@ public final class WorklistPlan {
         }
     }
 
+    /** Maintain existing total-stock records only for observed worklist crafting changes. */
+    void recordCraftedInventory(ItemStack[] before, ItemStack[] after) {
+        if (completed.isEmpty()) return;
+        Map<String, Long> old = new LinkedHashMap<>(completed);
+        Map<String, Long> previous = inventoryTotals(before), current = inventoryTotals(after);
+        try {
+            for (Map.Entry<String, Long> entry : old.entrySet()) {
+                String key = entry.getKey();
+                long visible = previous.getOrDefault(key, 0L);
+                long delta = current.getOrDefault(key, 0L) - visible;
+                if (delta == 0) continue;
+                long amount = Math.addExact(Math.max(entry.getValue(), visible), delta);
+                if (amount == 0) completed.remove(key);
+                else completed.put(key, amount);
+            }
+            if (!completed.equals(old)) saveProgress();
+        } catch (RuntimeException failure) {
+            completed.clear();
+            completed.putAll(old);
+            throw failure;
+        }
+    }
+
+    private static Map<String, Long> inventoryTotals(ItemStack[] inventory) {
+        Map<String, Long> totals = new LinkedHashMap<>();
+        for (ItemStack stack : inventory) if (stack != null) {
+            BookmarkItem item = BookmarkItem.of(0, stack);
+            totals.merge(outputKey(item), item.amount, Math::addExact);
+        }
+        return totals;
+    }
+
     private void loadProgress() {
         String world = codechicken.nei.NEIClientConfig.getWorldPath();
         if (world == null) return;

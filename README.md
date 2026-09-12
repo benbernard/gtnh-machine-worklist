@@ -6,13 +6,15 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. The automated suite has 47 checks, with CI builds for Windows, Linux, and macOS. Beta.3 extends the fast NEI bulk transfers to selected recipe chains and whole groups. Tests cover multi-stage execution, shared ingredients, existing stock, partial progress, machine boundaries and finite requests. Earlier gameplay verifies player-grid bulk crafting, handheld Adventure Backpack transfers, true three-column recipes, inventory guards and available-stock editing. Live backpack chains, returned tools, cancellation mid-chain, multiplayer crafting and wider platform gameplay still need acceptance checks. See [validation](docs/validation.md) for exact revisions and coverage.
+Beta for GTNH 2.8.4. The automated suite has 50 checks, with CI builds for Windows, Linux, and macOS. The final gameplay audit adds in-game help and repairs recorded-stock accounting through crafting. Live tests now include a three-stage recipe chain that pauses in the player's 2×2 grid and completes in the supported handheld backpack's 3×3 grid. Tests cover multi-stage execution, shared ingredients, existing stock, partial progress, machine boundaries and finite requests. See the [final audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact revisions, results and remaining coverage.
 
 ## Use
 
 Install the release JAR in a separate GTNH 2.8.4 instance's `mods` directory. Do not install the `-dev` or `-sources` JAR.
 
 Open inventory and press **F10** to open a hovered or sole NEI autocrafting group, or choose a named group. The key can be changed in Minecraft's Controls settings. After opening inventory once, `/machineworklist` opens the picker and `/machineworklist 16` opens that group directly. The picker includes first-run help and an example targeting eight crafting tables without changing bookmarks.
+
+**H / Help** in the picker, queue or recipe details opens six in-game topics: getting started, reading the queue, crafting a chain, available stock, blockers and controls. Choose a topic with its button or number key. Text pages show the visible line range and support wheel/arrows, Page Up/Down and Home/End. In the stock editor, **H** keeps its Add half remaining action and **?** opens stock help.
 
 Empty the crafting grid and cursor before opening the worklist; blocked entry explains the requirement over the original container so its items stay in place. Pages with multiple groups offer keyboard selection instead of requiring hover.
 
@@ -24,7 +26,7 @@ Keyboard navigation: **Tab / Shift+Tab** focuses buttons; **Enter** activates. *
 
 **Available stock** (or **C** while viewing the worklist) lets you enter an exact completed output total or complete half the remaining output, rounded up to whole recipe batches. Counts are items, or mB for fluids. For example, recording 50 completed plates against a 100-plate requirement leaves 50 to make and reduces the upstream chain. Use Previous/Next (or Page Up/Page Down) to select an output, enter a count and press Enter to save, or clear an entry to undo it. Outputs remain editable even when no work remains.
 
-Manual totals mean completed outputs **still available for this chain**, including copies in your inventory; the larger of manual stock and matching visible inventory is used, so picking up recorded items does not count them twice. These are not lifetime production counters: reduce or clear an intermediate's entry after consuming it in a later step. Record coproducts separately, especially chance outputs. Readiness still requires real inventory. Progress is saved locally per world/server and group snapshot; changing the group's recipe choices or quantities starts a fresh record.
+Manual totals mean completed outputs **still available for this chain**, including copies in your inventory; the larger of manual stock and matching visible inventory is used, so picking up recorded items does not count them twice. Verified worklist crafting updates existing records for consumed inputs and produced outputs. Update records yourself after producing or consuming items elsewhere. These are not lifetime production counters. Record coproducts separately, especially chance outputs. Readiness still requires real inventory. Progress is saved locally per world/server and group snapshot; changing the group's recipe choices or quantities starts a fresh record.
 
 Recipe notes flag GregTech chance outputs and matching recipes that NEI leaves unlinked. Chance-output quantities assume success and may need repeated batches. Cycles use NEI's external-input boundary and require starting material; the worklist does not optimize a recycling loop.
 

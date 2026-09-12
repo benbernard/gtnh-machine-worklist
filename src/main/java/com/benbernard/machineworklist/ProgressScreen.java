@@ -145,7 +145,7 @@ final class ProgressScreen extends WorklistGui {
                     java.util.Arrays.asList(
                         "Record the total output still available to this chain, including copies in inventory. This replaces the saved total; it does not add to it.",
                         "Recorded 64 and inventory 64 credits 64, not 128. If 64 are in a chest and 32 in inventory, record 96.",
-                        "After consuming recorded intermediates, reduce or clear their records. This is available stock, not lifetime production. Actual crafting always requires physical inputs.",
+                        "Verified worklist crafting updates existing records for consumed inputs and new outputs. Update them yourself after other consumption or production. This is available stock, not lifetime production. Actual crafting always requires physical inputs.",
                         "Add half remaining rounds up to whole recipe batches. Other outputs must be recorded separately. Records are local to this world/server and group snapshot.")));
             return;
         }

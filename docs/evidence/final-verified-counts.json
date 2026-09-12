@@ -1,0 +1,60 @@
+[
+  {
+    "location": "level.dat",
+    "inventory": {
+      "4573:0": 1,
+      "7495:17305": 64,
+      "7495:11305": 64,
+      "7494:1": 1,
+      "85:0": 12,
+      "58:0": 8
+    },
+    "backpack": [
+      {
+        "slot": 0,
+        "id": 318,
+        "count": 6
+      },
+      {
+        "slot": 2,
+        "id": 4,
+        "count": 10
+      },
+      {
+        "slot": 3,
+        "id": 17,
+        "count": 19
+      }
+    ],
+    "expectedCountsMatch": true
+  },
+  {
+    "location": "playerdata",
+    "inventory": {
+      "4573:0": 1,
+      "7495:17305": 64,
+      "7495:11305": 64,
+      "7494:1": 1,
+      "85:0": 12,
+      "58:0": 8
+    },
+    "backpack": [
+      {
+        "slot": 0,
+        "id": 318,
+        "count": 6
+      },
+      {
+        "slot": 2,
+        "id": 4,
+        "count": 10
+      },
+      {
+        "slot": 3,
+        "id": 17,
+        "count": 19
+      }
+    ],
+    "expectedCountsMatch": true
+  }
+]
