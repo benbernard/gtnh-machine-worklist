@@ -326,7 +326,7 @@ public class WorklistScreen extends WorklistGui {
         }
         line(
             selected == null ? "Arrows + Enter: recipe; I: item; Tab: buttons; C: stock."
-                : selected.crafting ? "F: one; G: all; B: blockers; I: item; Tab: buttons; Esc: back."
+                : selected.crafting ? "F: one; G: all; B: why; I: item; Tab: controls; Esc: back."
                     : "N: NEI; C: stock; Enter: upstream; I: item; Tab: buttons.",
             14,
             height - 18,
@@ -490,6 +490,8 @@ public class WorklistScreen extends WorklistGui {
         if (index < steps.size()) {
             selected = steps.get(index);
             scroll = 0;
+            keyboardRow = -1;
+            focusedButton = -1;
             buttons();
         }
     }
@@ -551,6 +553,7 @@ public class WorklistScreen extends WorklistGui {
         if (key == org.lwjgl.input.Keyboard.KEY_RETURN && selected == null && !showMissing && !steps.isEmpty()) {
             selected = steps.get(Math.max(0, Math.min(steps.size() - 1, keyboardRow < 0 ? scroll : keyboardRow)));
             scroll = 0;
+            keyboardRow = -1;
             buttons();
             return;
         }

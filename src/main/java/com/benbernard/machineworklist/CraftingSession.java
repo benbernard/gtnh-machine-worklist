@@ -83,8 +83,8 @@ final class CraftingSession {
                 finish("NEI could not complete the next batch. Check the grid and recipe inputs.", true);
                 return;
             }
-            if (visibleOutput(current) <= before) {
-                finish("No output increase was confirmed. Check the inventory before retrying.", true);
+            if (visibleOutput(current) - before != current.outputs.get(0).factor) {
+                finish("The output change did not match one batch. Check the inventory before retrying.", true);
                 return;
             }
             completed++;

@@ -129,6 +129,8 @@ public class NeiChainIntegrationTest {
         ItemStack[] slots = { new ItemStack(Items.gold_ingot, 60), null };
         assertEquals(17, CraftingAvailability.outputCapacity(slots, outputs, 100));
         assertEquals(3, CraftingAvailability.outputCapacity(slots, outputs, 3));
+        assertEquals(1, CraftingAvailability.outputCapacity(slots, outputs, 100, 1));
+        assertEquals(0, CraftingAvailability.outputCapacity(slots, outputs, 100, 2));
         assertEquals(
             0,
             CraftingAvailability.outputCapacity(new ItemStack[] { new ItemStack(Items.gold_ingot, 62) }, outputs, 100));

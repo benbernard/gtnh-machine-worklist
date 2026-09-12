@@ -41,7 +41,7 @@ public class WorklistCommand extends CommandBase {
             return;
         }
         BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
-        if (grid.size() == 0) {
+        if (grid.size() == 0 && arguments.length > 0) {
             sender.addChatMessage(
                 new ChatComponentText(
                     "Open your inventory once to load NEI bookmarks, then select an autocrafting group."));
