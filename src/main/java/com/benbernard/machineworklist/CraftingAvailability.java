@@ -15,7 +15,7 @@ import codechicken.nei.bookmark.BookmarkItem;
 import codechicken.nei.recipe.AutoCraftingManager;
 import codechicken.nei.recipe.RecipeHandlerRef;
 
-/** Read-only checks shared by button previews and every submitted batch. */
+/** Read-only checks shared by button previews and every submitted bulk transfer. */
 final class CraftingAvailability {
 
     final List<String> reasons = new ArrayList<>();

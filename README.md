@@ -6,7 +6,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. Windows, Linux, and macOS CI exercise 33 automated checks. Live Windows gameplay verifies one-batch and bulk player-grid and handheld Adventure Backpack crafting, true three-column transfers in a backpack and placed crafting table, remaining-demand and ingredient limits, full-inventory refusal/recovery, occupied-cursor/grid preservation, named group selection, visible keyboard focus, and available-stock editing. An earlier build also passed a client-only EMBU connection. Returned-tool recipes, worn/placed backpacks, multiplayer crafting and wider platform gameplay still need live acceptance checks. See [validation](docs/validation.md) for exact revisions and coverage; a successful build is not a claim of full pack compatibility.
+Beta for GTNH 2.8.4. The automated suite has 38 checks, with CI builds for Windows, Linux, and macOS. Beta.2 adds faster bulk transfers, verified in live player-grid tests for 64/256/349 batches and a single-batch request. Earlier beta gameplay verifies handheld Adventure Backpack crafting, true three-column transfers in a backpack and placed crafting table, remaining-demand and ingredient limits, full-inventory refusal/recovery, occupied-cursor/grid preservation, named group selection, visible keyboard focus, and available-stock editing. An earlier build also passed a client-only EMBU connection. Live backpack bulk execution on beta.2, returned-tool recipes, worn/placed backpacks, multiplayer crafting and wider platform gameplay still need acceptance checks. See [validation](docs/validation.md) for exact revisions and coverage; a successful build is not a claim of full pack compatibility.
 
 ## Use
 
@@ -51,11 +51,11 @@ Linux/macOS: `./gradlew build`
 
 Do not commit Minecraft files, account data, worlds, or launcher configuration. Test using a separate GTNH 2.8.4 instance.
 
-## Updated worklist UI (source build)
+## Worklist UI and crafting
 
 The current source adds separate Machines, Crafting, and All tabs. At wide GUI sizes an independently scrollable Overall missing inputs pane stays visible across tabs and recipe details; smaller windows use a Missing inputs view. The pane always covers the complete group, regardless of tab or readiness filter.
 
-Crafting recipe details have **Craft 1 batch** and **Craft all ready**. Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the inventory grid only supports recipes that fit). NEI autocrafting must be enabled. The current container must still be open, with an empty grid, empty cursor, a free inventory slot, and matching inputs. The buttons return to that container and ask NEI to craft one batch or the previewed ready quantity, checking prerequisites before each batch. A result screen reports completed batches and the stopping reason, then returns to the refreshed worklist. Machines remain manual and bulk crafting applies only to the selected recipe.
+Crafting recipe details have **Craft 1 batch** and **Craft all ready**. Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the inventory grid only supports recipes that fit). NEI autocrafting must be enabled. The current container must still be open, with an empty grid, empty cursor, a free inventory slot, and matching inputs. The buttons return to that container and ask NEI to craft one batch or the previewed ready quantity. Since beta.2, bulk crafting submits up to 64 batches per transfer, rechecking prerequisites and verifying output between transfers, with short bursts that allow Escape to stop further work. A result screen reports completed batches and the stopping reason, then returns to the refreshed worklist. Machines remain manual and bulk crafting applies only to the selected recipe.
 
 ### Adventure's Backpack crafting
 
