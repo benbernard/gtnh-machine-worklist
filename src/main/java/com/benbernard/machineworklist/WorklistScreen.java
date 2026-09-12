@@ -488,21 +488,26 @@ public class WorklistScreen extends WorklistGui {
         if (splitPane()) drawMissingPane(mouseX, mouseY);
         super.drawScreen(mouseX, mouseY, partialTicks);
         drawItemTooltip(mouseX, mouseY);
-        if (splitPane() && mouseX >= listRight() + 4
-            && mouseX < width - 12
-            && mouseY >= TOP
-            && mouseY < TOP + missingRows() * 32) {
-            int index = missingScroll + (mouseY - TOP) / 32;
-            if (index < plan.missingMaterials.size())
-                renderToolTip(plan.missingMaterials.get(index).itemStack, mouseX, mouseY);
-        }
     }
 
     private void drawItemTooltip(int x, int y) {
+        BookmarkItem item = itemAt(x, y);
+        if (item != null) renderToolTip(item.itemStack, x, y);
+    }
+
+    private BookmarkItem itemAt(int x, int y) {
+        if (error == null && splitPane()
+            && x >= listRight() + 4
+            && x < width - 12
+            && y >= TOP
+            && y < TOP + missingRows() * 32) {
+            int index = missingScroll + (y - TOP) / 32;
+            return index < plan.missingMaterials.size() ? plan.missingMaterials.get(index) : null;
+        }
         if (error != null || x < 12 || x >= listRight() - 12 || y < TOP || y >= TOP + visibleRows() * rowHeight())
-            return;
+            return null;
         int index = scroll + (y - TOP) / rowHeight();
-        if (index >= rowCount()) return;
+        if (index >= rowCount()) return null;
         BookmarkItem item = null;
         if (selected != null) {
             index -= explanations.size();
@@ -511,7 +516,7 @@ public class WorklistScreen extends WorklistGui {
                 item = selected.inputs.get(index - selected.outputs.size());
         } else if (showMissing) item = plan.missingMaterials.get(index);
         else if (x < 38) item = steps.get(index).outputs.get(0);
-        if (item != null) renderToolTip(item.itemStack, x, y);
+        return item;
     }
 
     private void drawStep(WorklistPlan.Step step, int y) {
@@ -663,7 +668,16 @@ public class WorklistScreen extends WorklistGui {
     @Override
     protected void mouseClicked(int x, int y, int button) {
         super.mouseClicked(x, y, button);
-        if (button == 0 && selected != null && y >= TOP && x >= 12 && x < listRight() - 12) {
+        if (button != 0 || mc.currentScreen != this) return;
+        // Queue rows already open the selected plan recipe. Other item rows browse NEI.
+        if (selected != null || showMissing || x >= listRight()) {
+            BookmarkItem item = itemAt(x, y);
+            if (item != null) {
+                openItemRecipe(item.itemStack);
+                return;
+            }
+        }
+        if (selected != null && y >= TOP && y < TOP + visibleRows() * rowHeight() && x >= 12 && x < listRight() - 12) {
             keyboardRow = scroll + (y - TOP) / rowHeight();
             openDependency(keyboardRow);
             return;

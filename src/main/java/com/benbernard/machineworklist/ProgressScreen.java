@@ -178,6 +178,15 @@ final class ProgressScreen extends WorklistGui {
     @Override
     protected void mouseClicked(int x, int y, int button) {
         super.mouseClicked(x, y, button);
+        if (mc.currentScreen != this) return;
+        if (button == 0 && !outputs.isEmpty()
+            && x >= 12
+            && x < width - 12
+            && y >= 40
+            && y < 40 + fontRendererObj.FONT_HEIGHT) {
+            openItemRecipe(output().itemStack);
+            return;
+        }
         if (quantity != null) quantity.mouseClicked(x, y, button);
     }
 
