@@ -30,16 +30,15 @@ final class CraftingSession {
         final boolean crafted;
         final CraftingReturns returns;
         final CraftingSettlement settlement;
-        net.minecraft.item.ItemStack[] observed;
 
         PendingTransfer(WorklistPlan.Step step, net.minecraft.item.ItemStack[] before, int batches, boolean crafted,
-            CraftingReturns returns, int ping) {
+            CraftingReturns returns) {
             this.step = step;
             this.before = before;
             this.batches = batches;
             this.crafted = crafted;
             this.returns = returns;
-            settlement = new CraftingSettlement(ping);
+            settlement = new CraftingSettlement();
         }
     }
 
@@ -127,14 +126,6 @@ final class CraftingSession {
         }
     }
 
-    private int pingMillis() {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.getNetHandler() != null)
-            for (net.minecraft.client.gui.GuiPlayerInfo player : mc.getNetHandler().playerInfoList)
-                if (player.name.equals(mc.thePlayer.getCommandSenderName())) return player.responseTime;
-        return 100;
-    }
-
     private boolean validContainer() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.isDead || mc.thePlayer.getHealth() <= 0) {
@@ -163,13 +154,10 @@ final class CraftingSession {
                 true);
             return;
         }
-        net.minecraft.item.ItemStack[] state = CraftingInventory.containerSnapshot(container);
-        boolean changed = !CraftingInventory.sameSnapshot(pending.observed, state);
-        pending.observed = state;
+        pending.returns.refreshAfterConfirmation(container);
         boolean blocked = !EntryFeedback.reasons(container)
             .isEmpty();
-        CraftingSettlement.Action action = pending.settlement
-            .tick(changed, blocked, pending.returns.canRecover(container));
+        CraftingSettlement.Action action = pending.settlement.tick(blocked, pending.returns.canRecover(container));
         if (action == CraftingSettlement.Action.STOP) {
             finish(
                 "Tool return did not settle. Check the cursor, bottom-right crafting grid and inventory space; "
@@ -248,13 +236,7 @@ final class CraftingSession {
                     + current.outputs.get(0).itemStack.getDisplayName()
                     + "; NEI success="
                     + crafted);
-            PendingTransfer transfer = new PendingTransfer(
-                current,
-                beforeInventory,
-                batches,
-                crafted,
-                returns,
-                pingMillis());
+            PendingTransfer transfer = new PendingTransfer(current, beforeInventory, batches, crafted, returns);
             // A clean prediction is not proof that the server has processed the bulk transfer.
             pending = transfer;
             return false;

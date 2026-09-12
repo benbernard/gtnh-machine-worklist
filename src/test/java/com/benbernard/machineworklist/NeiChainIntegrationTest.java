@@ -210,6 +210,13 @@ public class NeiChainIntegrationTest {
         for (int i = 0; i < 100; i++) assertEquals(BackpackLayout.craftingStorage(i), cleanup.contains(slots.get(i)));
         assertEquals(1, inventory.getStackInSlot(90).stackSize);
         assertEquals(1, inventory.getStackInSlot(99).stackSize);
+        for (net.minecraft.inventory.Slot slot : cleanup) inventory.setInventorySlotContents(slot.slotNumber, null);
+        // NEI has returned every real tool: stale mirrors and tools in storage must not trigger another click.
+        assertTrue(
+            returns.toolSlots(slots, true)
+                .isEmpty());
+        assertEquals(1, inventory.getStackInSlot(90).stackSize);
+        assertEquals(1, inventory.getStackInSlot(36).stackSize);
         TableFixture table = new TableFixture(0);
         table.matrix.setInventorySlotContents(0, tool.copy());
         table.result.setInventorySlotContents(0, tool.copy());

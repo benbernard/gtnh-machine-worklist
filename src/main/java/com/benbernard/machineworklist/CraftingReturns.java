@@ -45,9 +45,13 @@ final class CraftingReturns {
     }
 
     boolean canRecover(GuiContainer gui) {
-        if (CraftingInventory.backpack(gui)) return true; // Its mirror can lag even after the real grid cleared.
         return recognizes(gui.mc.thePlayer.inventory.getItemStack())
-            || !toolSlots(gui.inventorySlots.inventorySlots, false).isEmpty();
+            || !toolSlots(gui.inventorySlots.inventorySlots, CraftingInventory.backpack(gui)).isEmpty();
+    }
+
+    void refreshAfterConfirmation(GuiContainer gui) {
+        // NEI already cleared the real grid. A stale derived mirror needs no additional slot clicks.
+        if (CraftingInventory.backpack(gui)) synchronizeBackpack(gui);
     }
 
     void recover(GuiContainer gui) {
