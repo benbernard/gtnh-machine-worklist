@@ -33,9 +33,15 @@ public class WorklistCommand extends CommandBase {
     @Override
     public void processCommand(ICommandSender sender, String[] arguments) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null || ItemPanels.bookmarkPanel == null) return;
+        if (mc.thePlayer == null) return;
+        if (ItemPanels.bookmarkPanel == null) {
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "NEI bookmarks are not ready. Open your survival inventory, then press the worklist key (F10 by default)."));
+            return;
+        }
         BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
-        if (grid.size() == 0) {
+        if (grid.size() == 0 && arguments.length > 0) {
             sender.addChatMessage(
                 new ChatComponentText(
                     "Open your inventory once to load NEI bookmarks, then select an autocrafting group."));
@@ -47,10 +53,13 @@ public class WorklistCommand extends CommandBase {
             if (grid.isCraftingMode(group)) groups.add(group);
         }
         if (arguments.length == 0) {
-            sender.addChatMessage(
-                new ChatComponentText(
-                    "Autocrafting groups on this NEI page: " + groups
-                        + ". Use /machineworklist <number>, or hover a group and press the worklist key."));
+            GuiInventory inventory = new GuiInventory(mc.thePlayer);
+            net.minecraft.client.gui.ScaledResolution resolution = new net.minecraft.client.gui.ScaledResolution(
+                mc,
+                mc.displayWidth,
+                mc.displayHeight);
+            inventory.setWorldAndResolution(mc, resolution.getScaledWidth(), resolution.getScaledHeight());
+            ClientProxy.pendingScreen = new GroupScreen(inventory);
             return;
         }
         int group;

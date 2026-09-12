@@ -53,7 +53,11 @@ public class NeiChainIntegrationTest {
             "manualProgressSurvivesReloadAndCanBeCleared",
             "manualFluidProgressUsesMillibuckets",
             "manualStockIsSharedAcrossBranches",
-            "backpackCleanupExcludesStorageAndSupplyExcludesMirrors");
+            "backpackCleanupExcludesStorageAndSupplyExcludesMirrors",
+            "bulkOutputCapacityRespectsYieldAndRemainingDemand",
+            "bulkOutputCapacitySharesSpaceAcrossCoproducts",
+            "bulkOutputCapacityPreservesNbtAndRealInventory",
+            "bulkOutputCapacityHandlesNonStackablesAndHugeCounts");
     }
 
     @Test
@@ -112,6 +116,67 @@ public class NeiChainIntegrationTest {
                     .contains(i),
                 cleanup.contains(slots.get(i)));
         }
+    }
+
+    private static BookmarkItem capacityOutput(ItemStack stack, int yield) {
+        BookmarkItem output = BookmarkItem.of(0, stack);
+        output.factor = yield;
+        return output;
+    }
+
+    public void bulkOutputCapacityRespectsYieldAndRemainingDemand() {
+        List<BookmarkItem> outputs = Arrays.asList(capacityOutput(new ItemStack(Items.gold_ingot), 4));
+        ItemStack[] slots = { new ItemStack(Items.gold_ingot, 60), null };
+        assertEquals(17, CraftingAvailability.outputCapacity(slots, outputs, 100));
+        assertEquals(3, CraftingAvailability.outputCapacity(slots, outputs, 3));
+        assertEquals(1, CraftingAvailability.outputCapacity(slots, outputs, 100, 1));
+        assertEquals(0, CraftingAvailability.outputCapacity(slots, outputs, 100, 2));
+        assertEquals(
+            0,
+            CraftingAvailability.outputCapacity(new ItemStack[] { new ItemStack(Items.gold_ingot, 62) }, outputs, 100));
+    }
+
+    public void bulkOutputCapacitySharesSpaceAcrossCoproducts() {
+        List<BookmarkItem> outputs = Arrays.asList(
+            capacityOutput(new ItemStack(Items.gold_ingot), 4),
+            capacityOutput(new ItemStack(Items.diamond), 1));
+        assertEquals(16, CraftingAvailability.outputCapacity(new ItemStack[2], outputs, 100));
+        assertEquals(0, CraftingAvailability.outputCapacity(new ItemStack[1], outputs, 100));
+    }
+
+    public void bulkOutputCapacityPreservesNbtAndRealInventory() {
+        ItemStack tagged = new ItemStack(Items.gold_ingot, 60);
+        tagged.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        tagged.getTagCompound()
+            .setInteger("configuration", 1);
+        ItemStack[] slots = { tagged };
+        assertEquals(
+            0,
+            CraftingAvailability
+                .outputCapacity(slots, Arrays.asList(capacityOutput(new ItemStack(Items.gold_ingot), 1)), 100));
+        assertEquals(
+            4,
+            CraftingAvailability.outputCapacity(slots, Arrays.asList(capacityOutput(tagged.copy(), 1)), 100));
+        assertEquals(60, tagged.stackSize);
+        assertEquals(
+            1,
+            tagged.getTagCompound()
+                .getInteger("configuration"));
+    }
+
+    public void bulkOutputCapacityHandlesNonStackablesAndHugeCounts() {
+        assertEquals(
+            3,
+            CraftingAvailability.outputCapacity(
+                new ItemStack[3],
+                Arrays.asList(capacityOutput(new ItemStack(Items.iron_pickaxe), 1)),
+                Long.MAX_VALUE));
+        assertEquals(
+            16,
+            CraftingAvailability.outputCapacity(
+                new ItemStack[1],
+                Arrays.asList(capacityOutput(new ItemStack(Items.gold_ingot), 4)),
+                Long.MAX_VALUE));
     }
 
     public void existingIntermediatesReduceUpstreamMachineBatches() {

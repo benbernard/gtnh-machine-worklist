@@ -1,5 +1,28 @@
 # Validation record
 
+## Beta readiness pass — 2026-09-11
+
+All new interactive checks below were performed through computer use in the separate **Crafting Helper Test** Prism instance and disposable **New World**. Builds/package generation used Gradle; the repository's existing CI runs its automated suite on pushes. No production world or server inventory was changed.
+
+- Feature commit `61bd9a8` passed [Windows, Ubuntu and macOS CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34661029188). The suite now contains 33 checks, including bulk output yield, shared capacity, NBT identity, unstackable outputs and large counts. The final beta also reserves space for returned tools/containers.
+- Installed the normal JAR through Prism's Mods panel after disabling the old version. Startup and disposable-world loading passed.
+- The new named picker, first-run help and eight-table example opened in the small 854×480 game viewport. A crafting-only plan selected Crafting automatically. Existing tables reduced the example's remaining quantity.
+- With three tables and 16 flint/16 logs, **F** crafted exactly one table. Inventory became four tables, 14 flint and 14 logs, with an empty cursor/grid. [Original F2 capture](evidence/beta-one-batch.png).
+- **G** then previewed and crafted the four remaining table batches, despite enough ingredients for seven. Inventory became eight tables, six flint and six logs. The queue reported no work remaining. [Original F2 capture](evidence/beta-bulk-remaining.png).
+- Against an existing piston chain, six remaining logs supplied six batches yielding twelve planks. Bulk crafting completed 6/6, then disabled further crafting and explained that one more log was required for one batch. **B** opened the complete status in a separate readable screen.
+- Guard build based on `61bd9a8` (SHA-256 `aec9ae674c848321458a36a73d5213f7c5af76a8d32084e6fbf4d0af72cfa072`) kept the inventory open when F10 was pressed with logs on the cursor. It explained where to place them. With logs in the 2×2 grid, it instead asked to empty the grid/result. Moving the logs back cleared the explanation and allowed opening. [Original F2 capture](evidence/beta-occupied-grid.png).
+- Available-stock editing rejected `-1` without changing the recorded zero. **H** saved eight of sixteen remaining pistons, with Recorded 8 / Inventory 0 / Credited 8 and adjacent save feedback. Tab visibly focused Back. Clicking Clear record restored zero and sixteen remaining. Saving eight again prepared the restart check.
+- Enter, F, G, B, C, H, Tab and Escape were exercised. The Windows automation did not reliably deliver extended arrow/Delete keys to Minecraft; those shortcuts are implemented but are not counted as live passes.
+- The local HTML guide was inspected through the connected Chrome extension at a 390px phone viewport. The controls list stacked without horizontal overflow, navigation anchors worked, and the accessibility tree exposed the semantic definition list.
+
+The GUI-container entry guard fixes a subtle item-preservation issue: Minecraft closes and clears the old crafting GUI when another screen is displayed. The guard now explains an occupied cursor/grid over that original GUI instead of opening a replacement screen first.
+
+### Remaining beta acceptance coverage
+
+The following are not claimed as newly verified: a true three-column transfer; a full-inventory guard in gameplay; returned-tool crafting; bulk crafting in backpack variants; cancellation mid-request; death during crafting; multiplayer transfers/persistence; and Linux/macOS rendered gameplay. Earlier single-batch handheld-backpack and read-only multiplayer results below remain historical evidence. Complex fluids, chance outputs and cycles have synthetic coverage, not exhaustive live pack coverage. Screen-reader operation of the native Minecraft controls has not been established.
+
+The release is a **beta**, with these boundaries visible to users. The final release entry identifies its version and downloadable artifact; historical build hashes below refer only to the checks described beside them.
+
 ## Automated checks — 2026-09-05
 
 GitHub Actions [run 34006808760](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34006808760), commit `f5b1e4b79b3169541ddaf3ca6c270a316e4c30c1`: downloaded reports independently confirm **29 tests, zero failures and zero skips** on Windows, Ubuntu and macOS. All three production JARs have SHA-256 `e9f80be678ecf94634ddbc0bff6d937cd1f4669a839a98b9fcd59961d5937e53`.
@@ -43,14 +66,14 @@ Checks use the separate Prism test instance, disposable **New World**, and a rea
 - The completion editor rendered clearly at the small test window size: [original F2 capture](evidence/completion-small-window.png). Its background fix is visually verified. Tooltip layering is improved; exhaustive edge-of-window tooltip positioning is not verified.
 - The exact final CI JAR above connected to the saved EMBU server without installing a server counterpart. `/machineworklist 16` imported its group. Machines showed three operations, Crafting twelve and All fifteen against the real inventory; overall missing inputs opened, and Escape returned to the unchanged inventory. No crafting or completion records were submitted on the server. The test client was closed afterward.
 
-## Outstanding acceptance checks
+## Outstanding acceptance checks from the earlier development pass
 
 - Complete a real one-batch transfer of a recipe requiring all three crafting columns. The tested table recipe fits 2x2, including when transferred through the backpack's 3x3 area.
-- Verify occupied grid/cursor/full inventory guards in game, and worn/placed backpack variants. Handheld backpack storage accounting and cleanup passed.
+- Occupied grid/cursor preservation is now checked above. Full inventory and worn/placed backpack variants remain open; handheld storage accounting and cleanup passed on the earlier build.
 - Check tooltip placement at window edges and broader screen sizes.
 - Exercise death handling while the worklist is open on the latest build.
 - Validate larger actual GTNH groups, fluids, chance outputs and unavailable handlers beyond synthetic fixtures.
 - Verify a crafting transfer and completion persistence on multiplayer; the EMBU connection and read-only worklist check passed.
 - Rendered gameplay has only been exercised on Windows. Linux/macOS CI verifies compilation, packaging and automated calculations, not native gameplay.
 
-The development download is the final `f5b1e4b` CI JAR identified above. Compilation and synthetic integration tests do not establish full gameplay compatibility; the remaining acceptance checks are explicitly listed here.
+The earlier development download was the `f5b1e4b` CI JAR identified above. Compilation and synthetic integration tests do not establish full gameplay compatibility; use the current release and its coverage notes.

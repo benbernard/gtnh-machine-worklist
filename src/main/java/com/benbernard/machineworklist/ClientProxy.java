@@ -3,7 +3,6 @@ package com.benbernard.machineworklist;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.util.ChatComponentText;
 
 import org.lwjgl.input.Keyboard;
 
@@ -26,6 +25,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     public void init() {
         ClientRegistry.registerKeyBinding(open);
         GuiContainerManager.addInputHandler(this);
+        GuiContainerManager.addDrawHandler(new EntryFeedback());
         net.minecraftforge.client.ClientCommandHandler.instance.registerCommand(new WorklistCommand());
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
@@ -34,7 +34,9 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
     @cpw.mods.fml.common.eventhandler.SubscribeEvent
     public void tick(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent event) {
-        if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || pendingScreen == null) return;
+        if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
+        CraftingSession.tick();
+        if (pendingScreen == null) return;
         net.minecraft.client.gui.GuiScreen screen = pendingScreen;
         pendingScreen = null;
         if (Minecraft.getMinecraft().thePlayer != null) Minecraft.getMinecraft()
@@ -44,7 +46,12 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     @Override
     public boolean lastKeyTyped(GuiContainer gui, char character, int key) {
         if (Keyboard.isRepeatEvent() || key != open.getKeyCode()) return false;
-        if (ItemPanels.bookmarkPanel == null) return false;
+        if (!EntryFeedback.allow(gui)) return true;
+        if (ItemPanels.bookmarkPanel == null) {
+            Minecraft.getMinecraft()
+                .displayGuiScreen(new GroupScreen(gui));
+            return true;
+        }
         int group = ItemPanels.bookmarkPanel.getHoveredGroupId(false);
         if (group < 0) group = ItemPanels.bookmarkPanel.getHoveredGroupId(true);
         BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
@@ -61,12 +68,22 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (group < 0 || !grid.isCraftingMode(group)) {
-            mc.thePlayer.addChatMessage(
-                new ChatComponentText(
-                    "Hover an NEI autocrafting group and press the worklist key to open its machine work list."));
-            return false;
+            mc.displayGuiScreen(new GroupScreen(gui));
+            return true;
         }
-        mc.displayGuiScreen(new WorklistScreen(gui, WorklistPlan.capture(grid, group)));
+        try {
+            mc.displayGuiScreen(new WorklistScreen(gui, WorklistPlan.capture(grid, group)));
+        } catch (RuntimeException failure) {
+            mc.displayGuiScreen(
+                new InformationScreen(
+                    gui,
+                    "Cannot open this group",
+                    java.util.Arrays.asList(
+                        "Check the selected recipes in NEI and reopen the worklist. If this persists, include the following detail in a bug report.",
+                        failure.getClass()
+                            .getSimpleName() + ": "
+                            + failure.getMessage())));
+        }
         return true;
     }
 

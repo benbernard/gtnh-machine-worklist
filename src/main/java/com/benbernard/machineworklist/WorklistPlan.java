@@ -58,6 +58,43 @@ public final class WorklistPlan {
         return plan;
     }
 
+    static WorklistPlan example(ItemStack target, int batches) {
+        for (codechicken.nei.recipe.ICraftingHandler handler : codechicken.nei.recipe.GuiCraftingRecipe
+            .getCraftingHandlers("item", target)) {
+            String name = handler.getClass()
+                .getSimpleName();
+            if (!name.equals("ShapedRecipeHandler") && !name.equals("ShapelessRecipeHandler")) continue;
+            for (int index = 0; index < handler.numRecipes(); index++) {
+                codechicken.nei.recipe.Recipe recipe = codechicken.nei.recipe.Recipe.of(handler, index);
+                if (recipe.getResult() == null || !recipe.getResult()
+                    .isItemEqual(target)) continue;
+                List<BookmarkItem> items = new ArrayList<>();
+                for (codechicken.nei.recipe.Recipe.RecipeIngredient input : recipe.getIngredients()) items.add(
+                    BookmarkItem
+                        .of(
+                            -1,
+                            input.getItemStack(),
+                            input.getAmount(),
+                            recipe.getRecipeId(),
+                            BookmarkItem.BookmarkItemType.INGREDIENT)
+                        .copyWithAmount((long) input.getAmount() * batches));
+                for (codechicken.nei.recipe.Recipe.RecipeIngredient output : recipe.getResults()) items.add(
+                    BookmarkItem
+                        .of(
+                            -1,
+                            output.getItemStack(),
+                            output.getAmount(),
+                            recipe.getRecipeId(),
+                            BookmarkItem.BookmarkItemType.RESULT)
+                        .copyWithAmount((long) output.getAmount() * batches));
+                WorklistPlan plan = new WorklistPlan(-1, items);
+                plan.loadProgress();
+                return plan;
+            }
+        }
+        throw new IllegalStateException("No matching crafting recipe found.");
+    }
+
     static String outputKey(BookmarkItem item) {
         FluidStack fluid = StackInfo.getFluid(item.itemStack);
         return fluid == null ? StackInfo.getItemStackGUID(item.itemStack)
@@ -356,7 +393,7 @@ public final class WorklistPlan {
             this.id = id;
             RecipeHandlerRef reference = RecipeHandlerRef.of(id);
             recipeAvailable = reference != null;
-            machine = reference == null ? id.getHandleName() : reference.handler.getRecipeName();
+            machine = reference == null ? "Unavailable recipe" : reference.handler.getRecipeName();
             String handler = reference == null ? ""
                 : reference.handler.getClass()
                     .getSimpleName();
