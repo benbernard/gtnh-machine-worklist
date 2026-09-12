@@ -17,6 +17,8 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     static net.minecraft.client.gui.GuiScreen pendingScreen;
     private boolean pendingOpen;
     private boolean pendingChoose;
+    private GuiContainer pendingGui;
+    private int pendingTicks;
 
     private static final KeyBinding open = new KeyBinding(
         "key.machineworklist.open",
@@ -41,7 +43,8 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         if (pendingOpen) {
             pendingOpen = false;
             Minecraft mc = Minecraft.getMinecraft();
-            if (mc.currentScreen instanceof GuiContainer) open((GuiContainer) mc.currentScreen, pendingChoose);
+            if (mc.currentScreen == pendingGui) open(pendingGui, pendingChoose);
+            else pendingTicks = 0;
         }
         if (pendingScreen == null) return;
         net.minecraft.client.gui.GuiScreen screen = pendingScreen;
@@ -82,10 +85,12 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         // Always create a fresh, real inventory GUI; a closed table/backpack cannot be reused.
         mc.displayGuiScreen(new net.minecraft.client.gui.inventory.GuiInventory(mc.thePlayer));
         pendingOpen = true;
+        pendingGui = (GuiContainer) mc.currentScreen;
+        pendingTicks = 0;
         pendingChoose = net.minecraft.client.gui.GuiScreen.isShiftKeyDown();
     }
 
-    private static void open(GuiContainer gui, boolean chooseGroup) {
+    private void open(GuiContainer gui, boolean chooseGroup) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) return;
         GuiContainer active = CraftingInventory.activeGui(gui, mc.thePlayer.openContainer);
@@ -97,6 +102,21 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         }
         gui = active;
         if (!EntryFeedback.allow(gui)) return;
+        if (!bookmarksLoaded()) {
+            if (++pendingTicks <= 300) {
+                pendingOpen = true;
+                pendingGui = gui;
+                pendingChoose = chooseGroup;
+            } else {
+                pendingTicks = 0;
+                mc.thePlayer.addChatMessage(
+                    new net.minecraft.util.ChatComponentText(
+                        "NEI is still loading bookmarks. Keep inventory open, then press F10 again when loading finishes."));
+            }
+            return;
+        }
+        pendingTicks = 0;
+        if (ItemPanels.bookmarkPanel != null) ItemPanels.bookmarkPanel.update();
         if (chooseGroup) {
             mc.displayGuiScreen(new GroupScreen(gui));
             return;
@@ -155,6 +175,22 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
                         failure.getClass()
                             .getSimpleName() + ": "
                             + failure.getMessage())));
+        }
+    }
+
+    private static boolean bookmarksLoaded() {
+        if (!codechicken.nei.ItemList.loadFinished || ItemPanels.bookmarkPanel == null) return false;
+        try {
+            // In this NEI version loadFinished precedes bookmark loading; bookmarkFile is assigned last.
+            java.lang.reflect.Field storageField = codechicken.nei.BookmarkPanel.class.getDeclaredField("storage");
+            storageField.setAccessible(true);
+            Object storage = storageField.get(ItemPanels.bookmarkPanel);
+            java.lang.reflect.Field fileField = codechicken.nei.bookmark.BookmarkStorage.class
+                .getDeclaredField("bookmarkFile");
+            fileField.setAccessible(true);
+            return fileField.get(storage) != null;
+        } catch (ReflectiveOperationException failure) {
+            return true; // Older NEI versions still retain the public item-loading gate.
         }
     }
 
