@@ -237,10 +237,15 @@ public class WorklistScreen extends WorklistGui {
         if (!selected.crafting) {
             explanations
                 .add("Run this recipe in the machine shown in NEI. Machine tier, power and contents are not scanned.");
+            if (selected.inputs.stream()
+                .anyMatch(VirtualInputs::isCircuitSetting))
+                explanations.add(
+                    "The circuit is a virtual setting and always available. Set the shown configuration in the machine's ghost circuit slot; no inventory circuit is needed.");
             if (selected.readyRuns == 0) {
                 java.util.Map<String, BookmarkItem> inputs = new java.util.LinkedHashMap<>();
                 java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
                 for (BookmarkItem input : selected.inputs) {
+                    if (VirtualInputs.isCircuitSetting(input)) continue;
                     String key = WorklistPlan.outputKey(input);
                     inputs.putIfAbsent(key, input);
                     counts.put(key, Math.addExact(counts.getOrDefault(key, 0L), Math.max(1, input.factor)));
@@ -324,6 +329,7 @@ public class WorklistScreen extends WorklistGui {
             if (tab == 0) steps.removeIf(step -> step.crafting);
             if (tab == 1) steps.removeIf(step -> !step.crafting);
             if (readyOnly) steps.removeIf(step -> step.readyRuns == 0);
+            WorklistOrder.sortMachineRows(steps);
             previousInventory = copyInventory();
             error = null;
             crafting = selected != null && selected.crafting ? CraftingAvailability.inspect(parent, selected) : null;
@@ -538,7 +544,15 @@ public class WorklistScreen extends WorklistGui {
         if (index < selected.outputs.size()) drawMaterial(selected.outputs.get(index), "Produces: ", y, 0x67dbc4);
         else if (index < selected.outputs.size() + selected.inputs.size()) {
             BookmarkItem item = selected.inputs.get(index - selected.outputs.size());
-            if (item.factor == 0) {
+            if (VirtualInputs.isCircuitSetting(item)) {
+                icon(item.itemStack, 18, y + 5);
+                line(
+                    "Virtual circuit: configuration " + item.itemStack.getItemDamage() + " (always available)",
+                    40,
+                    y + 9,
+                    listRight() - 60,
+                    0x67dbc4);
+            } else if (item.factor == 0) {
                 icon(item.itemStack, 18, y + 5);
                 line("Reusable: " + itemName(item.itemStack), 40, y + 9, listRight() - 60, 0xe9bd72);
             } else drawMaterial(item, "Input: ", y, 0xffffff);

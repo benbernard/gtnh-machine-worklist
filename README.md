@@ -6,7 +6,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. The automated suite has 71 checks, with CI builds for Windows, Linux, and macOS. Beta.6 adds bounded returned-tool cleanup and waits for inventory to settle before advancing a chain. Beta.5 added remembered navigation, direct Close controls and Tinkers' crafting-station slot handling. Live testing of these new paths is deferred at the user's request. Earlier beta.4 gameplay tests covered multi-stage chains in player, table and backpack grids. See the [returned-tool plan](docs/returned-tools-plan.md), [navigation and container plan](docs/remember-position-plan.md), [earlier gameplay audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact coverage.
+Beta for GTNH 2.8.4. The automated suite has 76 checks, with CI builds for Windows, Linux, and macOS. Beta.7 treats reusable programmed circuits as virtual settings and sorts ready machine operations first, largest remaining run count first within ready/waiting groups. Beta.6 adds bounded returned-tool cleanup and waits for inventory to settle before advancing a chain. Beta.5 added remembered navigation, direct Close controls and Tinkers' crafting-station slot handling. Live testing of these new paths is deferred at the user's request. Earlier beta.4 gameplay tests covered multi-stage chains in player, table and backpack grids. See the [virtual circuit and ordering plan](docs/virtual-circuits-and-machine-order.md), [returned-tool plan](docs/returned-tools-plan.md), [navigation and container plan](docs/remember-position-plan.md), [earlier gameplay audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact coverage.
 
 ## Use
 
@@ -59,7 +59,9 @@ Do not commit Minecraft files, account data, worlds, or launcher configuration. 
 
 ## Worklist UI and crafting
 
-The current source adds separate Machines, Crafting, and All tabs. At wide GUI sizes an independently scrollable Overall missing inputs pane stays visible across tabs and recipe details; smaller windows use a Missing inputs view. The pane always covers the complete group, regardless of tab or readiness filter.
+The current source adds separate Machines, Crafting, and All tabs. Machine rows show ready operations before waiting ones, with largest remaining run counts first within each group. Partially ready operations count as ready; ordering uses total remaining runs, not only the runs currently ready. This also orders machine rows in All and refreshes after inventory or recorded-stock changes. At wide GUI sizes an independently scrollable Overall missing inputs pane stays visible across tabs and recipe details; smaller windows use a Missing inputs view. The pane always covers the complete group, regardless of tab or readiness filter.
+
+Reusable Programmed / Programmable Circuits are virtual machine settings: they never block readiness or appear as missing. Details show their configuration number and explain setting the machine's ghost circuit slot. Real reusable tools/molds and consumed circuit ingredients still require physical items.
 
 Recipe details have **Craft chain (G)**, and crafting recipes also have **Craft 1 batch (F)**. The queue has **Craft group (G)**. A chain request makes the selected upstream ingredients and then continues toward the remaining target; a group request advances all saved crafting recipes, regardless of the visible tab or filter. It uses only the group's chosen NEI recipes. Machines remain manual, although the worklist can craft their prerequisites.
 

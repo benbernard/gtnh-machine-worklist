@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.7
+
+- Treat GregTech zero-count programmed circuit ingredients as virtual settings: exclude them from readiness blockers and missing materials while preserving their configuration in recipe details. Physical tools and consumed circuits remain required.
+- Sort displayed machine operations ready first, then largest remaining run count first within ready/waiting groups. Apply this in Machines and All, and refresh after inventory or recorded-stock changes without changing crafting-chain scheduling.
+- Explain virtual circuit configuration and queue ordering in game and in the guide. Add five Forge/NEI regression fixtures; live gameplay remains pending while computer use is paused.
+
 ## 0.1.0-beta.6
 
 - Wait for tool-return and inventory updates before advancing or completing a crafting request, including first, partial and final transfers. Defer output/stock verification until settlement; ordinary empty-grid recipes retain fast bulk transfers.

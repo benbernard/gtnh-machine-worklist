@@ -50,6 +50,11 @@ public class NeiChainIntegrationTest {
             "multipleInventoryStacksAreAllAvailable",
             "deepChainStopsAtOwnedIntermediate",
             "missingReusableToolsAreCountedOnceAndDisappearWhenOwned",
+            "virtualCircuitConfigurationsAreAlwaysAvailable",
+            "virtualCircuitsDoNotHideMissingToolsOrMaterials",
+            "consumedCircuitsAndRegistryLookalikesRemainPhysical",
+            "machineDisplayOrdersReadyThenRemainingRuns",
+            "machineDisplayReordersAfterStockChangesWithoutChangingCrafting",
             "cyclicRecipesLeaveAFiniteExternalSeedRequirement",
             "reusableConfigurationMustMatchMetadataAndNbt",
             "consumedConfigurationCannotBeReplacedByUntaggedStock",
@@ -603,6 +608,205 @@ public class NeiChainIntegrationTest {
             0,
             plan.missingInputs(plan.remainingChain(finished), finished)
                 .size());
+    }
+
+    private static Item programmedCircuit() throws Exception {
+        Item circuit = new Item().setHasSubtypes(true)
+            .setUnlocalizedName("programmedCircuitFixture");
+        registerFixtureItem(circuit, "gregtech:gt.integrated_circuit");
+        return circuit;
+    }
+
+    private static void registerFixtureItem(Item item, String name) throws Exception {
+        // No active mod container in this isolated fixture. Vanilla addObject would prepend
+        // "minecraft:"; use Forge's registration after namespace resolution, preserving delegates.
+        java.lang.reflect.Method main = cpw.mods.fml.common.registry.GameData.class.getDeclaredMethod("getMain");
+        main.setAccessible(true);
+        java.lang.reflect.Method register = cpw.mods.fml.common.registry.GameData.class
+            .getDeclaredMethod("registerItem", Item.class, String.class, int.class);
+        register.setAccessible(true);
+        register.invoke(main.invoke(null), item, name, -1);
+        assertEquals(name, Item.itemRegistry.getNameForObject(item));
+    }
+
+    public void virtualCircuitConfigurationsAreAlwaysAvailable() throws Exception {
+        Item circuit = programmedCircuit();
+        for (int configuration = 0; configuration <= 24; configuration++) {
+            List<BookmarkItem> recipes = new ArrayList<>();
+            RecipeId id = recipe(
+                recipes,
+                "circuit-" + configuration,
+                Items.diamond,
+                2,
+                12,
+                new ItemStack(Items.iron_ingot),
+                new ItemStack(circuit, 0, configuration));
+            cacheHandler(id, new MachineRecipeHandler(new ItemStack(Items.diamond)));
+            WorklistPlan plan = new WorklistPlan(1, recipes);
+            String identity = plan.snapshotKey();
+            ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 12));
+            WorklistPlan.Step step = plan.calculate(inventory)
+                .get(0);
+            assertEquals(12, step.runs);
+            assertEquals(12, step.readyRuns);
+            assertTrue(plan.missingMaterials.isEmpty());
+            BookmarkItem setting = step.inputs.stream()
+                .filter(VirtualInputs::isCircuitSetting)
+                .findFirst()
+                .get();
+            assertEquals(configuration, setting.itemStack.getItemDamage());
+            assertTrue(
+                WorklistGui.itemName(setting.itemStack)
+                    .contains("configuration " + configuration));
+            assertEquals(2, step.inputs.size());
+            plan.calculate(inventory);
+            assertEquals(identity, plan.snapshotKey());
+            assertEquals(12, inventory[0].stackSize);
+            assertEquals(0, recipes.get(2).factor);
+            assertEquals(configuration, recipes.get(2).itemStack.getItemDamage());
+        }
+    }
+
+    public void virtualCircuitsDoNotHideMissingToolsOrMaterials() throws Exception {
+        Item circuit = programmedCircuit();
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId id = recipe(
+            recipes,
+            "configured-press",
+            Items.diamond,
+            1,
+            12,
+            new ItemStack(Items.iron_ingot),
+            new ItemStack(circuit, 0, 6),
+            new ItemStack(Items.stick, 0));
+        cacheHandler(id, new MachineRecipeHandler(new ItemStack(Items.diamond)));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        assertEquals(
+            0,
+            plan.calculate(stock(new ItemStack(Items.iron_ingot, 4)))
+                .get(0).readyRuns);
+        assertEquals(2, plan.missingMaterials.size());
+        assertFalse(
+            plan.missingMaterials.stream()
+                .anyMatch(item -> item.itemStack.getItem() == circuit));
+        assertEquals(
+            4,
+            plan.calculate(stock(new ItemStack(Items.iron_ingot, 4), new ItemStack(Items.stick)))
+                .get(0).readyRuns);
+        assertEquals(1, plan.missingMaterials.size());
+        assertEquals(Items.iron_ingot, plan.missingMaterials.get(0).itemStack.getItem());
+        assertEquals(8, plan.missingMaterials.get(0).amount);
+        assertEquals(
+            12,
+            plan.calculate(stock(new ItemStack(Items.iron_ingot, 12), new ItemStack(Items.stick)))
+                .get(0).readyRuns);
+        assertTrue(plan.missingMaterials.isEmpty());
+    }
+
+    public void consumedCircuitsAndRegistryLookalikesRemainPhysical() throws Exception {
+        Item circuit = programmedCircuit();
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId id = recipe(recipes, "physical-circuit", Items.diamond, 1, 5, new ItemStack(circuit, 1, 6));
+        cacheHandler(id, new MachineRecipeHandler(new ItemStack(Items.diamond)));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        assertEquals(
+            0,
+            plan.calculate(stock(new ItemStack(circuit, 5, 7)))
+                .get(0).readyRuns);
+        assertEquals(1, plan.missingMaterials.size());
+        assertEquals(5, plan.missingMaterials.get(0).amount);
+        assertEquals(
+            5,
+            plan.calculate(stock(new ItemStack(circuit, 5, 6)))
+                .get(0).readyRuns);
+        assertTrue(plan.missingMaterials.isEmpty());
+
+        Item lookalike = new Item().setHasSubtypes(true)
+            .setUnlocalizedName("programmedCircuitFixture");
+        registerFixtureItem(lookalike, "anothermod:gt.integrated_circuit");
+        recipes = new ArrayList<>();
+        id = recipe(recipes, "physical-lookalike", Items.emerald, 1, 2, new ItemStack(lookalike, 0, 6));
+        cacheHandler(id, new MachineRecipeHandler(new ItemStack(Items.emerald)));
+        plan = new WorklistPlan(1, recipes);
+        assertEquals(
+            0,
+            plan.calculate(stock(new ItemStack(circuit, 1, 6)))
+                .get(0).readyRuns);
+        assertEquals(1, plan.missingMaterials.size());
+        assertEquals(lookalike, plan.missingMaterials.get(0).itemStack.getItem());
+        assertEquals(
+            2,
+            plan.calculate(stock(new ItemStack(lookalike, 1, 6)))
+                .get(0).readyRuns);
+    }
+
+    public void machineDisplayOrdersReadyThenRemainingRuns() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId small = recipe(recipes, "small-ready", Items.diamond, 4, 5, Items.iron_ingot, 1);
+        RecipeId large = recipe(recipes, "large-partial", Items.emerald, 1, 20, Items.gold_ingot, 1);
+        RecipeId waitingSmall = recipe(recipes, "small-waiting", Items.redstone, 1, 8, Items.coal, 1);
+        RecipeId waitingLarge = recipe(recipes, "large-waiting", Items.quartz, 1, 100, Items.flint, 1);
+        for (BookmarkItem item : recipes) if (item.type == BookmarkItemType.RESULT)
+            cacheHandler(item.recipeId, new MachineRecipeHandler(item.itemStack));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        List<WorklistPlan.Step> calculated = plan
+            .calculate(stock(new ItemStack(Items.iron_ingot, 5), new ItemStack(Items.gold_ingot)));
+        List<RecipeId> original = stepIds(calculated);
+        List<WorklistPlan.Step> display = new ArrayList<>(calculated);
+        WorklistOrder.sortMachineRows(display);
+        assertEquals(Arrays.asList(large, small, waitingLarge, waitingSmall), stepIds(display));
+        assertEquals(1, display.get(0).readyRuns);
+        assertEquals(20, display.get(0).runs);
+        assertEquals(original, stepIds(calculated));
+        display.removeIf(step -> step.readyRuns == 0);
+        WorklistOrder.sortMachineRows(display);
+        assertEquals(Arrays.asList(large, small), stepIds(display));
+        display.get(1).runs = Long.MAX_VALUE;
+        WorklistOrder.sortMachineRows(display);
+        assertEquals(Arrays.asList(small, large), stepIds(display));
+    }
+
+    public void machineDisplayReordersAfterStockChangesWithoutChangingCrafting() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId small = recipe(recipes, "small-machine", Items.diamond, 1, 5, Items.iron_ingot, 1);
+        RecipeId large = recipe(recipes, "large-machine", Items.emerald, 1, 20, Items.gold_ingot, 1);
+        RecipeId crafting = recipe(recipes, "crafting", Items.stick, 1, 40, Items.flint, 1);
+        cacheHandler(small, new MachineRecipeHandler(new ItemStack(Items.diamond)));
+        cacheHandler(large, new MachineRecipeHandler(new ItemStack(Items.emerald)));
+        cacheHandler(crafting, new ShapedRecipeHandler(new ItemStack(Items.stick)));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 5), new ItemStack(Items.flint, 40));
+        List<WorklistPlan.Step> first = plan.calculate(inventory);
+        int craftingIndex = stepIds(first).indexOf(crafting);
+        WorklistOrder.sortMachineRows(first);
+        assertEquals(craftingIndex, stepIds(first).indexOf(crafting));
+        assertTrue(stepIds(first).indexOf(small) < stepIds(first).indexOf(large));
+        inventory[2] = new ItemStack(Items.gold_ingot, 20);
+        List<WorklistPlan.Step> next = plan.calculate(inventory);
+        craftingIndex = stepIds(next).indexOf(crafting);
+        WorklistOrder.sortMachineRows(next);
+        assertEquals(craftingIndex, stepIds(next).indexOf(crafting));
+        assertTrue(stepIds(next).indexOf(large) < stepIds(next).indexOf(small));
+        plan.setCompleted(
+            plan.progressOutputs()
+                .stream()
+                .filter(item -> item.recipeId.equals(large))
+                .findFirst()
+                .get(),
+            18);
+        next = plan.calculate(inventory);
+        WorklistOrder.sortMachineRows(next);
+        assertTrue(stepIds(next).indexOf(small) < stepIds(next).indexOf(large));
+        assertEquals(
+            crafting,
+            new CraftingChain(plan, inventory)
+                .inspect(inventory, NeiChainIntegrationTest::fixtureAvailability).next.id);
+    }
+
+    private static List<RecipeId> stepIds(List<WorklistPlan.Step> steps) {
+        List<RecipeId> ids = new ArrayList<>();
+        for (WorklistPlan.Step step : steps) ids.add(step.id);
+        return ids;
     }
 
     public void reusableConfigurationMustMatchMetadataAndNbt() {
