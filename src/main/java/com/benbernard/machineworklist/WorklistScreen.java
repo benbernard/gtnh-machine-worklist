@@ -552,7 +552,7 @@ public class WorklistScreen extends WorklistGui {
                     y + 9,
                     listRight() - 60,
                     0x67dbc4);
-            } else if (item.factor == 0) {
+            } else if (selected.reusableInputs.contains(item)) {
                 icon(item.itemStack, 18, y + 5);
                 line("Reusable: " + itemName(item.itemStack), 40, y + 9, listRight() - 60, 0xe9bd72);
             } else drawMaterial(item, "Input: ", y, 0xffffff);

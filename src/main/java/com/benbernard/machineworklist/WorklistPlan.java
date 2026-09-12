@@ -403,16 +403,34 @@ public final class WorklistPlan {
         long[] stock = stockItems.stream()
             .mapToLong(item -> item.amount)
             .toArray();
+        int[] toolUses = new int[stockItems.size()];
+        java.util.Arrays.fill(toolUses, -1);
         for (Step step : result) {
+            long readinessLimit = step.runs;
             List<BatchReadiness.Ingredient> requirements = new ArrayList<>();
             for (BookmarkItem input : step.inputs) {
                 if (VirtualInputs.isCircuitSetting(input)) continue;
                 int[] matches = java.util.stream.IntStream.range(0, stockItems.size())
                     .filter(index -> matchesInput(input, stockItems.get(index)))
                     .toArray();
-                requirements.add(new BatchReadiness.Ingredient(Math.max(1, input.factor), input.factor == 0, matches));
+                boolean reusable = input.factor == 0;
+                if (step.crafting && !reusable && matches.length > 0) {
+                    int limit = CraftingBurst.MAX_BATCHES;
+                    for (int slot : matches) {
+                        if (toolUses[slot] < 0)
+                            toolUses[slot] = CraftingToolUses.available(stockItems.get(slot).itemStack);
+                        limit = Math.min(limit, toolUses[slot]);
+                    }
+                    if (limit > 0) {
+                        reusable = true;
+                        // NEI may pick any matching tool: all choices must survive this transfer.
+                        readinessLimit = Math.min(readinessLimit, limit);
+                    }
+                }
+                if (reusable) step.reusableInputs.add(input);
+                requirements.add(new BatchReadiness.Ingredient(Math.max(1, input.factor), reusable, matches));
             }
-            step.readyRuns = BatchReadiness.maximumRuns(step.runs, stock, requirements);
+            step.readyRuns = BatchReadiness.maximumRuns(readinessLimit, stock, requirements);
         }
         result.sort(
             Comparator.comparing((Step step) -> step.readyRuns == 0)
@@ -463,6 +481,7 @@ public final class WorklistPlan {
         public final boolean crafting;
         public final boolean recipeAvailable;
         public final List<BookmarkItem> inputs = new ArrayList<>();
+        public final java.util.Set<BookmarkItem> reusableInputs = new java.util.HashSet<>();
         public final List<BookmarkItem> outputs = new ArrayList<>();
         public final List<RecipeId> dependencies = new ArrayList<>();
         public final List<String> notes = new ArrayList<>();

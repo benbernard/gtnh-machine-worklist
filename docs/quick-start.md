@@ -17,6 +17,8 @@ The GTNH recipe uses two flint and two logs per table. If you own no tables, six
 
 The Crafting tab opens automatically. Press **Enter** to view the recipe. **Craft 1 batch / F** runs it once. **Craft chain / G** makes the selected upstream crafting ingredients and continues toward the remaining target. From the queue, **Craft group / G** advances every selected crafting recipe in the group, regardless of tab or filter. These actions use real ingredients and available output space; machine operations remain manual. The result reports completion or partial progress with blockers. Fix a blocker and start again to resume. **Escape** closes the crafting container and cancels further transfers.
 
+Returning files/screwdrivers can support multiple batches with one tool. Tool-using previews check up to 64 batches per transfer, bounded by durability; a nearly broken matching spare may shorten a transfer. Separate tool slots need separate tools. A clear grid/cursor resumes on the next client tick; actual leftovers retain bounded recovery.
+
 Open a real crafting table or supported Adventure Backpack first and use **F10** for 3×3 recipes. Commands use the player inventory's 2×2 grid. Empty the grid and put away any cursor item before opening the worklist; if blocked, the explanation appears over the original container and its items stay in place.
 
 ## Build your own NEI group
