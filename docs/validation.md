@@ -2,6 +2,8 @@
 
 ## Final gameplay and in-game help for 0.1.0-beta.4 — 2026-09-12
 
+[Published beta.4](https://github.com/benbernard/gtnh-machine-worklist/releases/tag/0.1.0-beta.4) passed [tagged CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34676641666). All three platform JARs, the local build and the installed test-instance JAR match: 87,955 bytes, SHA-256 `1271b358903a94bb672cc553328bcff8cf7bf3710eaa643f8f77dd6d634f0be5`. Every executable entry matches the final gameplay candidate after normalizing only version metadata. The exact release also passed startup, disposable-world loading, saved-plan reopening and NEI recipe navigation.
+
 All 50 automated tests passed locally and on Windows, Ubuntu and macOS. This pass found and fixed external-stock accounting during chains, brief backpack synchronization states, stale-container Back navigation and overlapping wide-layout controls. A regression test first reproduced the stock defect and now passes, including persistence and save-failure rollback.
 
 Live Windows GTNH 2.8.4 checks exercised single batches and multi-recipe chains through the player 2×2 grid, placed crafting table and handheld backpack; full-inventory refusal/recovery; held-cursor and occupied-grid preservation; exact/half/clear stock and restart persistence; filters and machine-operation explanations; the eight-table example; NEI recipe navigation; and disabling/re-enabling NEI autocrafting through its documented menu. Six in-game help topics cover setup, queue interpretation, F/G scope, stock, blockers and controls, with readable small-window text and visible scroll ranges.

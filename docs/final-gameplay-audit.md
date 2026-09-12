@@ -56,6 +56,14 @@ After the client process exited, the original inventory NBT (including backpack 
 - Help-topic buttons are bounded to avoid a seam in Minecraft's button texture.
 - Wide-screen queue buttons stay out of the missing-input pane. Returning to a container closed by NEI goes to the world, rather than showing a stale container.
 
+## Published release verification
+
+[0.1.0-beta.4](https://github.com/benbernard/gtnh-machine-worklist/releases/tag/0.1.0-beta.4) is tagged at `ab8ebe8510fa717ec90bf1cca83c131140835b93`. [Tagged CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34676641666) passed on Windows, Ubuntu and macOS: each downloaded report contains 50 tests, zero failures and zero ignored tests. All three normal JARs match the local and installed release: 87,955 bytes, SHA-256 `1271b358903a94bb672cc553328bcff8cf7bf3710eaa643f8f77dd6d634f0be5`.
+
+Comparing every JAR entry against the final gameplay candidate found differences only in `mcmod.info` and the version constants in `MachineWorklist.class` and `Tags.class`. Replacing just those version values makes every entry identical.
+
+The exact release started and loaded the disposable world. F10 reopened the original named group 14, restored its stock accounting and opened its selected stick recipe in NEI. NEI's Favorite control was reachable, but automated Shift+A did not create a new group reliably; this attempt is not counted as a passed fresh-group setup walkthrough. The shortcut and recipe-tree behavior were checked in the pinned NEI source. After normal exit, both saved inventories still exactly matched the original inventory NBT. Bookmarks, favorites, progress and settings were restored and verified again. Exactly one Machine Worklist JAR remains enabled in the test instance: beta.4.
+
 ## Coverage limits
 
 The full automated suite covers pinned NEI math, fluids, metadata/NBT, reusable ingredients, shared stock, cycles, output capacity, bounded bursts and the stock regressions. This live pass is local Windows singleplayer. It does not establish multiplayer/server latency behavior, Linux/macOS rendered gameplay, every returned-tool/container recipe, worn/placed backpack variants, death or cancellation during a long active chain. Those remain explicit acceptance checks. Native pointer and extended-key injection is intermittent in this client; a source-verified shortcut is not counted as a live pass merely because it exists. The complete custom-group creation path in NEI still needs reliable input coverage; the example, existing saved groups and NEI setting/recovery path passed.
