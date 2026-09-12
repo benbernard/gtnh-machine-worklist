@@ -1,5 +1,11 @@
 # Validation record
 
+## Open-container storage for 0.1.0-beta.9 — 2026-09-12
+
+Six added Forge/NEI fixtures cover exposed storage permissions/deduplication, backpack output boundaries, full-player bulk workspace, stack limits/NBT/tool reservations, refused-transfer restoration and container closure. Station grid-offset fixtures now include attached storage supplies. See [the implementation record](open-container-storage.md).
+
+No computer use or gameplay was performed. Actual backpack/station overflow, multiplayer acknowledgments and runtime speed remain unverified live.
+
 ## Returned-tool bulk crafting for 0.1.0-beta.8 — 2026-09-12
 
 The local suite has 79 passing checks. Three new Forge/NEI fixtures cover one returning tool enabling 64-batch chain readiness, preserved damage/stock/source factors, durability and simultaneous tool-slot limits, and consumed containers. Settlement checks preserve blocked-grid recovery bounds and verify prompt clean-grid continuation. The [root-cause and implementation record](returned-tool-batching.md) distinguishes the one-batch readiness bug from beta.6’s added quiet wait.

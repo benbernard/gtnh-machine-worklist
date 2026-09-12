@@ -30,7 +30,8 @@ final class BackpackCraftingOverlay extends DefaultOverlayHandler {
 
     @Override
     public boolean canMoveFrom(Slot slot, GuiContainer gui) {
-        return slot.slotNumber >= 0 && slot.slotNumber < 36 || BackpackLayout.storage(slot.slotNumber);
+        return (slot.slotNumber >= 0 && slot.slotNumber < 36 || BackpackLayout.storage(slot.slotNumber))
+            && ContainerStorage.canTake(slot, gui);
     }
 
     @Override

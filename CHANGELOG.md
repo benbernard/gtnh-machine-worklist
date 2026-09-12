@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.9
+
+- Use Tinkers' exposed attached storage as physical ingredients, with extraction permissions and duplicate slot views handled consistently in snapshots and NEI transfers.
+- Use ordinary open backpack and station storage as overflow: prepare player workspace with whole-stack moves, then retain NEI bulk crafting. Preserve the held hotbar item, NBT, slot limits, crafting/utility boundaries and returned-tool space.
+- Stop on changed/refused transfers, restore a held stack when safe, and never click a replacement container. Explain storage movement and recovery in game. Add six Forge/NEI fixtures; live gameplay remains pending while computer use is paused.
+
 ## 0.1.0-beta.8
 
 - Restore bulk readiness for positive-count crafting tools that return after use. One file or screwdriver can supply up to 64 batches, conservatively bounded by durability and all matching tool choices. Multiple tool slots still require separate physical tools; consumed containers remain consumed.

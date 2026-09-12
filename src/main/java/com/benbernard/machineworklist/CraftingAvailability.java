@@ -96,27 +96,15 @@ final class CraftingAvailability {
             if (!named) result.reasons.add(
                 "Ingredients overlap or do not match the selected recipe. Check its inputs and required tool settings in NEI.");
         }
-        int returnedSlots = 0;
-        if (handler != null) for (codechicken.nei.PositionedStack ingredient : handler.handler
-            .getIngredientStacks(handler.recipeIndex)) {
-                for (ItemStack option : ingredient.items) {
-                    if (option.getItem()
-                        .hasContainerItem(option) || option.stackSize == 0) {
-                        returnedSlots++;
-                        break;
-                    }
-                }
-            }
-        long space = outputCapacity(mc.thePlayer.inventory.mainInventory, step.outputs, step.readyRuns, returnedSlots);
-        if (mc.thePlayer.inventory.getFirstEmptyStack() < 0)
-            result.reasons.add("Player inventory is full. Free a slot for crafting transfers and returned tools.");
-        else if (step.readyRuns > 0 && space == 0)
-            result.reasons.add("Not enough player-inventory space for one batch's outputs. Free more space first.");
+        long space = CraftingSpace.plan(gui, step, step.readyRuns).batches;
+        if (step.readyRuns > 0 && space == 0) result.reasons.add(
+            "Not enough usable space for crafting transfers, outputs and returned tools. "
+                + "Free player slots or space in the open backpack/attached storage.");
         if (result.reasons.isEmpty() && !CraftingInventory.canCraft(handler, gui)) result.reasons.add(
             "NEI cannot transfer these inputs in this container. Check the exact recipe and use a supported crafting table or backpack.");
         result.batches = result.reasons.isEmpty() ? Math.min(step.readyRuns, space) : 0;
-        result.limit = space < step.readyRuns
-            ? "Limited by output/returned-tool space; free more player-inventory slots."
+        result.limit = space < Math.min(step.readyRuns, CraftingBurst.MAX_BATCHES)
+            ? "Limited by output/returned-tool space; free player slots or open storage."
             : step.readyRuns < step.runs ? "Limited by ingredients or reusable tools; see recipe inputs."
                 : "All remaining batches of this recipe are ready.";
         return result;

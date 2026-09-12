@@ -17,8 +17,10 @@ import codechicken.nei.recipe.IRecipeHandler;
 final class StationCraftingOverlay extends DefaultOverlayHandler {
 
     private final Set<Slot> matrix = new HashSet<>();
+    private final Set<Slot> storage;
 
     StationCraftingOverlay(Container container) {
+        storage = new HashSet<>(ContainerStorage.slots(container, false));
         for (Slot slot : container.inventorySlots) if (slot.inventory instanceof InventoryCrafting) {
             matrix.add(slot);
             if (slot.getSlotIndex() == 0) {
@@ -56,5 +58,9 @@ final class StationCraftingOverlay extends DefaultOverlayHandler {
         for (Slot[] slots : mapIngredSlots(gui, ingredients)) if (slots.length != 1) return false;
         return true;
     }
-    // DefaultOverlayHandler.canMoveFrom limits supplies to player inventory, matching the plan.
+
+    @Override
+    public boolean canMoveFrom(Slot slot, GuiContainer gui) {
+        return (super.canMoveFrom(slot, gui) || storage.contains(slot)) && ContainerStorage.canTake(slot, gui);
+    }
 }
