@@ -15,6 +15,12 @@ import codechicken.nei.recipe.chain.RecipeChainMath;
 final class ProgressScreen extends WorklistGui {
 
     private final WorklistScreen parent;
+
+    @Override
+    protected net.minecraft.client.gui.GuiScreen parentScreen() {
+        return parent;
+    }
+
     private final WorklistPlan plan;
     private final List<BookmarkItem> outputs;
     private int index;
@@ -36,6 +42,7 @@ final class ProgressScreen extends WorklistGui {
     public void initGui() {
         buttonList.clear();
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Back"));
+        addCloseButton();
         if (outputs.isEmpty()) return;
         buttonList.add(new GuiButton(1, 12, 62, 70, 20, "Previous"));
         buttonList.add(new GuiButton(2, 86, 62, 70, 20, "Next"));
@@ -176,6 +183,10 @@ final class ProgressScreen extends WorklistGui {
 
     @Override
     protected void keyTyped(char character, int key) {
+        if (ClientProxy.isOpenKey(key)) {
+            focusKey(key);
+            return;
+        }
         if (key == org.lwjgl.input.Keyboard.KEY_TAB && quantity != null) {
             if (quantity.isFocused()) {
                 quantity.setFocused(false);

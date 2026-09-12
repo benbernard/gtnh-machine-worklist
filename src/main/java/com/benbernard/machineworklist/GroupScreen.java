@@ -22,19 +22,31 @@ import codechicken.nei.bookmark.BookmarkItem;
 final class GroupScreen extends WorklistGui {
 
     private final GuiScreen parent;
+    private final String message;
     private final List<Integer> groups = new ArrayList<>();
     private final List<String> labels = new ArrayList<>();
     private int row;
     private int scroll;
 
+    @Override
+    protected GuiScreen parentScreen() {
+        return parent;
+    }
+
     GroupScreen(GuiScreen parent) {
+        this(parent, "Autocrafting groups on the current NEI page");
+    }
+
+    GroupScreen(GuiScreen parent, String message) {
         this.parent = parent;
+        this.message = message;
     }
 
     @Override
     public void initGui() {
         buttonList.clear();
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Back"));
+        addCloseButton();
         buttonList.add(new GuiButton(1, 12, 42, 140, 20, "Worklist help [H]"));
         buttonList.add(new GuiButton(2, 158, 42, 142, 20, "Example: 8 tables [E]"));
         groups.clear();
@@ -75,7 +87,7 @@ final class GroupScreen extends WorklistGui {
         net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xff101723);
         drawString(fontRendererObj, "CHOOSE A WORKLIST", 12, 15, 0x67dbc4);
-        drawString(fontRendererObj, "Autocrafting groups on the current NEI page", 12, 72, 0xa9b7cb);
+        drawString(fontRendererObj, fontRendererObj.trimStringToWidth(message, width - 24), 12, 72, 0xa9b7cb);
         if (groups.isEmpty()) fontRendererObj.drawSplitString(
             "No autocrafting groups found on this page. Press H for setup, or E to try the example without changing bookmarks.",
             12,

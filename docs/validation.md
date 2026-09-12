@@ -1,5 +1,11 @@
 # Validation record
 
+## Remembered navigation and current crafting grid for 0.1.0-beta.5 — 2026-09-12
+
+The suite now has 61 checks, adding navigation persistence/fallback and identity tests, plus container-selection and station-grid fixtures. The Tinkers' fixtures cover the three chest-dependent grid offsets in installed TConstruct 1.13.57-GTNH, distinguish attached storage from occupied crafting inputs/results, limit cleanup to the nine matrix slots, and reject closed container references. These fixtures load Minecraft and NEI classes without opening a game window or operating native input.
+
+The user stopped computer use while playing Minecraft. New F10/Close, restart recovery and Tinkers' station transfers have **not** been tested live. The [implementation and validation plan](remember-position-plan.md) records the exact scope and pending gameplay checks. Earlier beta.4 gameplay results below apply to that version. The running production client and its active mod JAR remain untouched during preparation.
+
 ## Final gameplay and in-game help for 0.1.0-beta.4 — 2026-09-12
 
 [Published beta.4](https://github.com/benbernard/gtnh-machine-worklist/releases/tag/0.1.0-beta.4) passed [tagged CI](https://github.com/benbernard/gtnh-machine-worklist/actions/runs/34676641666). All three platform JARs, the local build and the installed test-instance JAR match: 87,955 bytes, SHA-256 `1271b358903a94bb672cc553328bcff8cf7bf3710eaa643f8f77dd6d634f0be5`. Every executable entry matches the final gameplay candidate after normalizing only version metadata. The exact release also passed startup, disposable-world loading, saved-plan reopening and NEI recipe navigation.

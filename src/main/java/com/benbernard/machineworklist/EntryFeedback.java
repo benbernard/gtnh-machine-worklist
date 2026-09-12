@@ -32,8 +32,10 @@ final class EntryFeedback extends Gui implements IContainerDrawHandler {
         for (Slot slot : gui.inventorySlots.inventorySlots) if (slot instanceof SlotCrafting) hasGrid = true;
         if (hasGrid)
             for (Slot slot : gui.inventorySlots.inventorySlots) if (CraftingInventory.occupiedCraftingSlot(gui, slot)) {
-                reasons
-                    .add("Empty the crafting grid and result slot before opening the worklist. Your items stay here.");
+                reasons.add(
+                    (CraftingInventory.backpack(gui)
+                        ? "Empty the open backpack's bottom-right 3x3 grid and result slot."
+                        : "Empty this container's crafting grid and result slot.") + " Your items stay here.");
                 break;
             }
         return reasons;

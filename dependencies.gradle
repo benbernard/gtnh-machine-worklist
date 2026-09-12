@@ -2,5 +2,6 @@ dependencies {
     implementation('com.github.GTNewHorizons:NotEnoughItems:2.8.44-GTNH:dev') { transitive = false }
     implementation('com.github.GTNewHorizons:CodeChickenCore:1.4.10:dev') { transitive = false }
     testImplementation('junit:junit:4.13.2')
+    // GUI classes reference LWJGL types even in fixtures that never create a window or call native input.
+    testRuntimeOnly('org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209') { transitive = false }
 }
-

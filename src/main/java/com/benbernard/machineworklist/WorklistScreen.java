@@ -42,10 +42,43 @@ public class WorklistScreen extends WorklistGui {
     private boolean readyOnly;
     private boolean showMissing;
     private String error;
+    private final java.nio.file.Path navigationFile;
+    private WorklistPosition restore;
 
     public WorklistScreen(GuiScreen parent, WorklistPlan plan) {
+        this(parent, plan, null);
+    }
+
+    WorklistScreen(GuiScreen parent, WorklistPlan plan, WorklistPosition restore) {
         this.parent = parent;
         this.plan = plan;
+        this.restore = restore;
+        this.navigationFile = ClientProxy.navigationFile();
+    }
+
+    @Override
+    protected GuiScreen parentScreen() {
+        return parent;
+    }
+
+    @Override
+    public void onGuiClosed() {
+        if (navigationFile == null || error != null) return;
+        WorklistPosition position = new WorklistPosition();
+        position.group = plan.groupId;
+        position.snapshot = plan.snapshotKey();
+        position.recipe = selected == null ? ""
+            : selected.id.toJsonObject()
+                .toString();
+        position.tab = tab;
+        position.readyOnly = readyOnly;
+        position.showMissing = showMissing;
+        position.scroll = scroll;
+        position.missingScroll = missingScroll;
+        position.keyboardRow = keyboardRow;
+        if (!position.save(navigationFile) && mc.thePlayer != null) mc.thePlayer.addChatMessage(
+            new net.minecraft.util.ChatComponentText(
+                "Could not save the worklist position. Check the local navigation folder permissions."));
     }
 
     private boolean splitPane() {
@@ -114,9 +147,29 @@ public class WorklistScreen extends WorklistGui {
 
     @Override
     public void initGui() {
+        if (restore != null) {
+            tab = restore.tab;
+            readyOnly = restore.readyOnly;
+            showMissing = restore.showMissing;
+            missingScroll = restore.missingScroll;
+            initialTab = false;
+        }
         if (splitPane()) showMissing = false;
         refresh();
+        if (restore != null && !restore.recipe.isEmpty()) {
+            for (WorklistPlan.Step step : allSteps) if (restore.recipe.equals(
+                step.id.toJsonObject()
+                    .toString()))
+                selected = step;
+        }
         buttons();
+        if (restore != null) {
+            scroll = !restore.recipe.isEmpty() && selected == null ? 0 : restore.scroll;
+            keyboardRow = !restore.recipe.isEmpty() && selected == null ? -1
+                : Math.min(restore.keyboardRow, rowCount() - 1);
+            restore = null;
+            clampScroll();
+        }
     }
 
     private void buttons() {
@@ -125,8 +178,9 @@ public class WorklistScreen extends WorklistGui {
         buttonList.clear();
         buttonList.add(new GuiButton(13, width - 230, 10, 56, 20, "Help [H]"));
         buttonList.add(new GuiButton(6, width - 170, 10, 96, 20, "Stock [C]"));
-        buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, selected == null ? "Close" : "Back"));
+        buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Close"));
         if (selected != null) {
+            buttonList.add(new GuiButton(14, 12, 68, 140, 20, "Back to queue [Esc]"));
             int buttonWidth = Math.min(300, (width - 32) / 3);
             GuiButton recipe = new GuiButton(4, 12, 42, buttonWidth, 20, "NEI recipe [N]");
             recipe.enabled = selected.recipeAvailable;
@@ -372,8 +426,8 @@ public class WorklistScreen extends WorklistGui {
         drawRect(0, 0, width, height, 0xf5101723);
         line(selected == null ? "WORKLIST" : selected.machine, 14, 14, width - 246, 0x67dbc4);
         String subtitle = selected == null
-            ? (plan.groupId == -1 ? "Example: 8 crafting tables" : "NEI group " + plan.groupId)
-                + (CraftingInventory.backpack(parent) ? " / Inventory + open backpack" : " / Inventory + hotbar")
+            ? (plan.groupId == -1 ? "Example: 8 crafting tables" : "NEI group " + plan.groupId) + " / "
+                + CraftingInventory.context(parent)
                 + (plan.progressWarning != null ? " / Check manual progress"
                     : plan.completed.isEmpty() ? "" : " + manual completion")
             : selected.runs + " runs remaining / " + selected.readyRuns + " ready with current inventory";
@@ -562,11 +616,12 @@ public class WorklistScreen extends WorklistGui {
             return;
         }
         if (button.id == 0) {
-            if (selected == null) {
-                returnTo(parent);
-                return;
-            }
+            closeWorklist();
+            return;
+        }
+        if (button.id == 14) {
             selected = null;
+            keyboardRow = -1;
         }
         if (button.id == 2) {
             readyOnly = !readyOnly;
