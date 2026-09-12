@@ -74,7 +74,7 @@ final class CraftingInventory {
         GuiContainer gui = mc.thePlayer == null ? null : activeGui(screen, mc.thePlayer.openContainer);
         if (gui == null) return "Grid closed; reopen your table";
         if (backpack(gui)) return "Backpack 3x3 / Inventory + open backpack";
-        if (station(gui)) return "Tinkers' station 3x3 / Inventory + hotbar";
+        if (station(gui)) return "Tinkers' station 3x3 / Inventory + attached storage";
         if (gui instanceof net.minecraft.client.gui.inventory.GuiInventory) return "Player 2x2 / Inventory + hotbar";
         if (gui instanceof net.minecraft.client.gui.inventory.GuiCrafting) return "Table 3x3 / Inventory + hotbar";
         return "Current container / Inventory + hotbar";
@@ -84,16 +84,18 @@ final class CraftingInventory {
         List<ItemStack> stock = new ArrayList<>();
         for (ItemStack item : Minecraft.getMinecraft().thePlayer.inventory.mainInventory)
             stock.add(item == null ? null : item.copy());
-        if (backpack(screen)) {
-            GuiContainer gui = activeGui(screen, Minecraft.getMinecraft().thePlayer.openContainer);
-            // Never include hidden mirror slots 90-98, result slot 99, or tool/fluid slots.
-            for (int i = 36; i < 84; i++) {
-                ItemStack item = gui.inventorySlots.getSlot(i)
-                    .getStack();
-                stock.add(item == null ? null : item.copy());
-            }
-        }
+        GuiContainer gui = activeGui(screen, Minecraft.getMinecraft().thePlayer.openContainer);
+        if (gui != null && (backpack(gui) || station(gui)))
+            appendStorage(stock, ContainerStorage.slots(gui.inventorySlots, backpack(gui)), gui.mc.thePlayer);
         return stock.toArray(new ItemStack[0]);
+    }
+
+    static void appendStorage(List<ItemStack> stock, List<Slot> slots,
+        net.minecraft.entity.player.EntityPlayer player) {
+        for (Slot slot : slots) {
+            ItemStack item = slot.getStack();
+            stock.add(item == null || !slot.canTakeStack(player) ? null : item.copy());
+        }
     }
 
     static boolean occupiedCraftingSlot(GuiContainer gui, Slot slot) {

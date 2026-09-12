@@ -73,6 +73,12 @@ public class NeiChainIntegrationTest {
             "returnedToolsPreserveDamageNbtAndRejectOtherToolTypes",
             "settlementSnapshotDetectsToolDamageAndLateMirrors",
             "stationMappingTracksChestOffsetAndExcludesStorage",
+            "openStorageRespectsExtractionAndDeduplicates",
+            "backpackOutputStorageExcludesCraftingAndUtility",
+            "overflowMakesBulkSpaceAndPreservesHeldItem",
+            "overflowRespectsLimitsTagsAndToolSpace",
+            "overflowRefusalRestoresCursorAndStops",
+            "overflowClosureSendsNoFurtherClicks",
             "navigationIdentityTracksRecipeChoicesAndQuantities",
             "navigationIdentityIgnoresInventoryAndRecordedProgress",
             "bulkOutputCapacityRespectsYieldAndRemainingDemand",
@@ -272,12 +278,12 @@ public class NeiChainIntegrationTest {
                 9,
                 overlay.getCraftMatrixSlots(gui, handler)
                     .size());
-            assertFalse(overlay.canMoveFrom(table.getSlot(10), gui));
+            assertTrue(overlay.canMoveFrom(table.getSlot(10), gui));
             assertTrue(overlay.canMoveFrom(table.getSlot(11), gui));
             table.storage.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 64));
             table.player.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 9));
             assertEquals(
-                9,
+                73,
                 table.inventorySlots.stream()
                     .filter(slot -> slot.getHasStack() && overlay.canMoveFrom(slot, gui))
                     .mapToInt(slot -> slot.getStack().stackSize)
@@ -287,6 +293,219 @@ public class NeiChainIntegrationTest {
             assertEquals(64, table.storage.getStackInSlot(0).stackSize);
             assertEquals(9, table.player.getStackInSlot(0).stackSize);
         }
+    }
+
+    public void openStorageRespectsExtractionAndDeduplicates() {
+        TableFixture table = new TableFixture(122);
+        net.minecraft.inventory.Slot locked = new net.minecraft.inventory.Slot(table.storage, 0, 0, 0) {
+
+            @Override
+            public boolean canTakeStack(net.minecraft.entity.player.EntityPlayer player) {
+                return false;
+            }
+        };
+        locked.slotNumber = 10;
+        table.inventorySlots.set(10, locked);
+        table.inventorySlots.add(new net.minecraft.inventory.Slot(table.storage, 0, 0, 0));
+        table.storage.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 64));
+        List<net.minecraft.inventory.Slot> storage = ContainerStorage.slots(table, false);
+        assertEquals(1, storage.size());
+        assertFalse(new StationCraftingOverlay(table).canMoveFrom(locked, new FixtureGui(table)));
+        List<ItemStack> stock = new ArrayList<>();
+        CraftingInventory.appendStorage(stock, storage, null);
+        assertNull(stock.get(0));
+        table.inventorySlots.set(10, new net.minecraft.inventory.Slot(table.storage, 0, 0, 0));
+        stock.clear();
+        CraftingInventory.appendStorage(stock, ContainerStorage.slots(table, false), null);
+        assertEquals(64, stock.get(0).stackSize);
+        stock.get(0).stackSize = 1;
+        assertEquals(64, table.storage.getStackInSlot(0).stackSize);
+    }
+
+    public void backpackOutputStorageExcludesCraftingAndUtility() {
+        TableFixture table = new TableFixture(0);
+        table.inventorySlots.clear();
+        net.minecraft.inventory.InventoryBasic storage = new net.minecraft.inventory.InventoryBasic("Bag", false, 100);
+        for (int i = 0; i < 100; i++) {
+            net.minecraft.inventory.Slot slot = new net.minecraft.inventory.Slot(storage, i, 0, 0);
+            slot.slotNumber = i;
+            table.inventorySlots.add(slot);
+        }
+        List<net.minecraft.inventory.Slot> destinations = ContainerStorage.outputSlots(table, true);
+        assertEquals(39, destinations.size());
+        for (net.minecraft.inventory.Slot slot : destinations) {
+            assertTrue(slot.slotNumber >= 36 && slot.slotNumber < 84);
+            assertFalse(BackpackLayout.craftingStorage(slot.slotNumber));
+        }
+    }
+
+    private static final class OverflowFixture implements CraftingSpace.Transfer {
+
+        final net.minecraft.entity.player.InventoryPlayer inventory = new net.minecraft.entity.player.InventoryPlayer(
+            null);
+        final net.minecraft.inventory.InventoryBasic extra = new net.minecraft.inventory.InventoryBasic(
+            "Storage",
+            false,
+            4);
+        final List<net.minecraft.inventory.Slot> sources = new ArrayList<>();
+        final List<net.minecraft.inventory.Slot> targets = new ArrayList<>();
+        ItemStack cursor;
+        int clicks;
+        int refuse = -1;
+        int closeAfter = -1;
+
+        OverflowFixture() {
+            for (int i = 0; i < 36; i++) {
+                inventory.mainInventory[i] = new ItemStack(Items.iron_ingot, 64);
+                sources.add(new net.minecraft.inventory.Slot(inventory, i, 0, 0));
+            }
+            for (int i = 0; i < 4; i++) targets.add(new net.minecraft.inventory.Slot(extra, i, 0, 0));
+        }
+
+        CraftingSpace.Plan plan(int tools) {
+            return CraftingSpace.plan(
+                inventory.mainInventory,
+                sources,
+                targets,
+                Arrays.asList(capacityOutput(new ItemStack(Items.gold_ingot), 1)),
+                64,
+                tools,
+                0,
+                null);
+        }
+
+        public boolean active() {
+            return closeAfter < 0 || clicks < closeAfter;
+        }
+
+        public ItemStack cursor() {
+            return cursor;
+        }
+
+        public net.minecraft.entity.player.EntityPlayer player() {
+            return null;
+        }
+
+        public void click(net.minecraft.inventory.Slot slot) {
+            assertTrue(active());
+            if (++clicks == refuse) return;
+            if (cursor == null) {
+                cursor = slot.getStack();
+                slot.putStack(null);
+            } else {
+                ItemStack prior = slot.getStack();
+                assertTrue(prior == null || prior.isItemEqual(cursor));
+                int amount = Math.min(
+                    cursor.stackSize,
+                    Math.min(slot.getSlotStackLimit(), cursor.getMaxStackSize())
+                        - (prior == null ? 0 : prior.stackSize));
+                if (prior == null) {
+                    prior = cursor.copy();
+                    prior.stackSize = amount;
+                    slot.putStack(prior);
+                } else prior.stackSize += amount;
+                cursor.stackSize -= amount;
+                if (cursor.stackSize == 0) cursor = null;
+            }
+        }
+
+        int total() {
+            int count = cursor == null ? 0 : cursor.stackSize;
+            for (net.minecraft.inventory.Slot slot : sources)
+                if (slot.getHasStack()) count += slot.getStack().stackSize;
+            for (net.minecraft.inventory.Slot slot : targets)
+                if (slot.getHasStack()) count += slot.getStack().stackSize;
+            return count;
+        }
+    }
+
+    public void overflowMakesBulkSpaceAndPreservesHeldItem() {
+        OverflowFixture fixture = new OverflowFixture();
+        ItemStack held = fixture.inventory.mainInventory[0];
+        int total = fixture.total();
+        CraftingSpace.Plan plan = fixture.plan(1);
+        assertEquals(64, plan.batches);
+        assertEquals(2, plan.moves.size());
+        assertEquals(total, fixture.total()); // Preview is read-only.
+        assertTrue(plan.execute(fixture));
+        assertEquals(total, fixture.total());
+        assertSame(held, fixture.inventory.mainInventory[0]);
+        assertEquals(
+            64,
+            CraftingAvailability.outputCapacity(
+                fixture.inventory.mainInventory,
+                Arrays.asList(capacityOutput(new ItemStack(Items.gold_ingot), 1)),
+                64,
+                1));
+        assertNull(fixture.cursor);
+        assertEquals(4, fixture.clicks); // Whole stacks; no per-output click loop.
+    }
+
+    public void overflowRespectsLimitsTagsAndToolSpace() {
+        OverflowFixture fixture = new OverflowFixture();
+        fixture.targets.clear();
+        for (int i = 0; i < 4; i++) fixture.targets.add(new net.minecraft.inventory.Slot(fixture.extra, i, 0, 0) {
+
+            @Override
+            public int getSlotStackLimit() {
+                return 16;
+            }
+
+            @Override
+            public boolean isItemValid(ItemStack item) {
+                return item.getItem() == Items.iron_ingot;
+            }
+        });
+        CraftingSpace.Plan plan = fixture.plan(0);
+        assertEquals(64, plan.batches);
+        assertEquals(4, plan.moves.get(0).placements.size());
+        int total = fixture.total();
+        assertTrue(plan.execute(fixture));
+        assertEquals(total, fixture.total());
+        for (net.minecraft.inventory.Slot slot : fixture.targets) assertEquals(16, slot.getStack().stackSize);
+        fixture = new OverflowFixture();
+        fixture.targets.subList(1, 4)
+            .clear();
+        assertEquals(0, fixture.plan(1).batches); // One freed slot cannot hold output plus returned tool.
+        assertTrue(fixture.plan(1).moves.isEmpty());
+        ItemStack tagged = new ItemStack(Items.iron_ingot, 1);
+        tagged.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        tagged.getTagCompound()
+            .setString("owner", "other");
+        fixture.extra.setInventorySlotContents(0, tagged);
+        assertEquals(0, fixture.plan(0).batches); // Same item with different NBT cannot merge.
+        fixture.extra.setInventorySlotContents(0, null);
+        fixture.targets.set(0, new net.minecraft.inventory.Slot(fixture.extra, 0, 0, 0) {
+
+            @Override
+            public boolean canTakeStack(net.minecraft.entity.player.EntityPlayer player) {
+                return false;
+            }
+        });
+        assertEquals(0, fixture.plan(0).batches);
+    }
+
+    public void overflowRefusalRestoresCursorAndStops() {
+        OverflowFixture fixture = new OverflowFixture();
+        CraftingSpace.Plan plan = fixture.plan(0);
+        int total = fixture.total();
+        fixture.refuse = 2;
+        assertFalse(plan.execute(fixture));
+        assertNull(fixture.cursor);
+        assertEquals(total, fixture.total());
+        assertEquals(3, fixture.clicks);
+        assertEquals(64, fixture.inventory.mainInventory[9].stackSize);
+    }
+
+    public void overflowClosureSendsNoFurtherClicks() {
+        OverflowFixture fixture = new OverflowFixture();
+        CraftingSpace.Plan plan = fixture.plan(0);
+        int total = fixture.total();
+        fixture.closeAfter = 1;
+        assertFalse(plan.execute(fixture));
+        assertEquals(1, fixture.clicks);
+        assertEquals(total, fixture.total());
+        assertEquals(64, fixture.cursor.stackSize); // Left for the actual container to handle; never dropped.
     }
 
     public void navigationIdentityTracksRecipeChoicesAndQuantities() {

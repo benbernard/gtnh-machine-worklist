@@ -193,6 +193,12 @@ final class CraftingSession {
                 finish("No more batches are ready. Check the inputs and available output space.", true);
                 return false;
             }
+            CraftingSpace.Plan space = CraftingSpace.plan(container, current, batches);
+            batches = (int) Math.min(batches, space.batches);
+            if (batches < 1 || !CraftingSpace.execute(space, container)) {
+                finish("Storage changed or refused a transfer. Check the cursor and available storage space.", true);
+                return false;
+            }
             net.minecraft.item.ItemStack[] beforeInventory = CraftingInventory.snapshot(container);
             CraftingReturns returns = new CraftingReturns(current.inputs);
             boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(current.id), container, batches);

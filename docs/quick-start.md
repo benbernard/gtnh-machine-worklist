@@ -60,3 +60,7 @@ Verified worklist crafting updates existing records for consumed inputs and prod
 ## Accessibility scope
 
 The mod provides keyboard controls, visible focus, text statuses, scrollable explanations and bounded tooltips. Minecraft's native UI did not expose worklist controls through the tested Windows accessibility tree. Screen-reader support has not been established. The HTML guide is available for reading with browser accessibility tools.
+
+### Ingredients and overflow in open storage
+
+Open the Adventure Backpack or Tinkers' Crafting Station before F10. The backpack's ordinary storage and the station's exposed attached storage supply ingredients and provide output overflow. When you start F/G, the mod may move whole player stacks into that storage to free transfer, output and returned-tool space. The held item stays in place. Keep the crafting grid and cursor empty; grid, mirror, tank and utility slots are not overflow space. Storage must accept the item and allow it to be taken back. If there is no usable room, free space and resume the chain. Previews never rearrange items; crafting still uses NEI batches of up to 64.
