@@ -24,7 +24,9 @@ Open a real crafting table or supported Adventure Backpack first and use **F10**
 1. Search NEI for your target, press **R** and choose the recipe you want. Favorite the ingredient recipes you want the tree to follow.
 2. Hover the recipe's **heart / Favorite** control. Press **Shift + Bookmark** (**Shift+A** by default); the hotkey tooltip calls this **Save Recipe Tree**. This saves an autocrafting group containing that recipe and the favorite ingredient recipes it can link.
 3. Use **Ctrl + mouse wheel** over the bookmarked target to change its quantity. A saved recipe tree already uses Crafting Chain mode. For an ordinary group, right-click its bracket to toggle that mode; the default ungrouped page uses its page header.
-4. Open the appropriate inventory/crafting container and press **F10**. A hovered or sole group opens directly. Otherwise use the named picker. Close and reopen after changing NEI recipes or target quantities.
+4. Open the appropriate inventory/crafting container and press **Shift+F10** to choose the group. After that, **F10** resumes the same unchanged chain and recipe position. With no remembered chain, F10 opens a hovered or sole group, or the picker. Choose the group again after changing NEI recipes, target quantities or pages.
+
+**Close and return later:** press **F10** or click **Close** from the queue, recipe details, stock, help or status. This exits the entire worklist without backing through its screens. **Escape/Back** still goes back one level. F10 restores the underlying queue/recipe, tab, filter and scroll position, including after a client restart. Save a stock quantity edit with Enter before closing; help pages and active crafting requests are not resumed. If a recipe completed, its queue opens instead. From the world, F10 uses a fresh player 2×2 inventory; open the actual table or backpack first for its grid.
 
 Group numbers are local to your bookmarks. `/machineworklist 16` only works if your current bookmark page contains autocrafting group 16.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-beta.5
+
+- F10 resumes the last unchanged group and its recipe, tab, filter, keyboard selection and scroll positions; navigation saves per world/server across client restarts.
+- F10 or Close exits the entire worklist from recipe details, stock, help and status without backing out. Escape/Back remains single-level navigation; details have a separate Back to queue button.
+- Shift+F10 opens the group picker. F10 from the world creates a fresh player inventory; reopening always reimports the plan and checks current inventory/container state.
+- Changed or missing groups fall back to the picker. Completed recipe details return to the queue; malformed navigation files do not block use.
+- Recognize Tinkers' Crafting Station grid slots separately from attached chest storage, which no longer causes a false occupied-grid warning. Resolve the shifted 3×3 grid for every preview/transfer and restrict supplies to the player inventory used by the plan.
+- Use the currently active container when opening, reject stale container references, identify the grid in the queue and make backpack entry warnings specific to its crafting area.
+
 ## 0.1.0-beta.4
 
 - Add six in-game help topics and a visible Help button in the picker, queue and recipe details. Explain setup, controls, chain scope, stock and recovery; show the visible line range on text pages.

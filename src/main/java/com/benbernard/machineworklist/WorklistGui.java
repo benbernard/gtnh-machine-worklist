@@ -13,6 +13,31 @@ import org.lwjgl.input.Keyboard;
 abstract class WorklistGui extends GuiScreen {
 
     protected int focusedButton = -1;
+    private static final int CLOSE_WORKLIST = 10000;
+
+    protected void addCloseButton() {
+        buttonList.add(new GuiButton(CLOSE_WORKLIST, width - 128, 10, 56, 20, "Close"));
+    }
+
+    @Override
+    protected void mouseClicked(int x, int y, int button) {
+        if (button == 0) for (Object value : buttonList) {
+            GuiButton candidate = (GuiButton) value;
+            if (candidate.id == CLOSE_WORKLIST && candidate.mousePressed(mc, x, y)) {
+                closeWorklist();
+                return;
+            }
+        }
+        super.mouseClicked(x, y, button);
+    }
+
+    protected abstract GuiScreen parentScreen();
+
+    protected void closeWorklist() {
+        GuiScreen destination = parentScreen();
+        while (destination instanceof WorklistGui) destination = ((WorklistGui) destination).parentScreen();
+        returnTo(destination);
+    }
 
     protected void returnTo(GuiScreen parent) {
         if (parent instanceof net.minecraft.client.gui.inventory.GuiContainer && (mc.thePlayer == null
@@ -22,6 +47,10 @@ abstract class WorklistGui extends GuiScreen {
     }
 
     protected boolean focusKey(int key) {
+        if (ClientProxy.isOpenKey(key)) {
+            if (!Keyboard.isRepeatEvent()) closeWorklist();
+            return true;
+        }
         if (key == Keyboard.KEY_TAB && !buttonList.isEmpty()) {
             int current = -1;
             for (int i = 0; i < buttonList.size(); i++)
@@ -36,7 +65,10 @@ abstract class WorklistGui extends GuiScreen {
             for (Object value : buttonList) {
                 GuiButton button = (GuiButton) value;
                 if (button.id == focusedButton) {
-                    if (!Keyboard.isRepeatEvent()) actionPerformed(button);
+                    if (!Keyboard.isRepeatEvent()) {
+                        if (button.id == CLOSE_WORKLIST) closeWorklist();
+                        else actionPerformed(button);
+                    }
                     return true;
                 }
             }

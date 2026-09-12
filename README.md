@@ -6,17 +6,21 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. The automated suite has 50 checks, with CI builds for Windows, Linux, and macOS. The final gameplay audit adds in-game help and repairs recorded-stock accounting through crafting. Live tests now include a three-stage recipe chain that pauses in the player's 2×2 grid and completes in the supported handheld backpack's 3×3 grid. Tests cover multi-stage execution, shared ingredients, existing stock, partial progress, machine boundaries and finite requests. See the [final audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact revisions, results and remaining coverage.
+Beta for GTNH 2.8.4. The automated suite has 61 checks, with CI builds for Windows, Linux, and macOS. Beta.5 adds remembered navigation, direct Close controls and Tinkers' crafting-station slot handling. Its new behavior has automated coverage; live beta.5 gameplay testing is deferred at the user's request. Earlier beta.4 gameplay tests covered multi-stage chains in player, table and backpack grids. See the [navigation and container plan](docs/remember-position-plan.md), [earlier gameplay audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact coverage.
 
 ## Use
 
 Install the release JAR in a separate GTNH 2.8.4 instance's `mods` directory. Do not install the `-dev` or `-sources` JAR.
 
-Open inventory and press **F10** to open a hovered or sole NEI autocrafting group, or choose a named group. The key can be changed in Minecraft's Controls settings. After opening inventory once, `/machineworklist` opens the picker and `/machineworklist 16` opens that group directly. The picker includes first-run help and an example targeting eight crafting tables without changing bookmarks.
+Press **F10** to resume the last unchanged crafting group on the current NEI page, with its recipe detail, tab, ready filter and scroll position. **F10 or Close** exits the whole worklist from any of its screens; **Escape or Back** goes back one level. **Shift+F10** opens the group picker. Positions save per world/server and survive restarts. A changed or missing group opens the picker; a completed recipe returns to its queue. From the world, F10 uses a fresh player inventory; open a real crafting table/backpack first to use its grid and storage. The key can be rebound in Controls.
+
+With no remembered position, F10 opens a hovered or sole NEI autocrafting group, or offers the named picker. After NEI initializes, `/machineworklist` opens the picker and `/machineworklist 16` opens that group directly. The picker includes help and an eight-table example without changing bookmarks. Reopening recalculates inventory and never resumes an old crafting request. Save quantity edits with Enter before closing the stock editor.
 
 **H / Help** in the picker, queue or recipe details opens six in-game topics: getting started, reading the queue, crafting a chain, available stock, blockers and controls. Choose a topic with its button or number key. Text pages show the visible line range and support wheel/arrows, Page Up/Down and Home/End. In the stock editor, **H** keeps its Add half remaining action and **?** opens stock help.
 
 Empty the crafting grid and cursor before opening the worklist; blocked entry explains the requirement over the original container so its items stay in place. Pages with multiple groups offer keyboard selection instead of requiring hover.
+
+The queue header names the active grid. A **Tinkers' Crafting Station** uses its own 3×3 grid even if a closed backpack contains crafting ingredients. Attached chest storage can remain occupied; only the station's grid/result and the held cursor block entry. Worklist crafting at that station uses player inventory/hotbar, so move needed ingredients out of attached storage first.
 
 **Machines** lists machine operations still needed after accounting for visible inventory. **Crafting** lists crafting-grid recipes; **All** combines them. Crafting-only groups open on Crafting, and tabs show counts. Open a row to inspect inputs, outputs, readable upstream recipes and active blockers. **NEI recipe** shows tier and settings. Escape returns. **Overall missing inputs** covers the whole group; smaller windows use a separate view.
 
@@ -63,6 +67,6 @@ Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the
 
 ### Adventure's Backpack crafting
 
-The current source supports Adventure Backpack 1.3.13-GTNH through a dedicated NEI overlay that limits grid cleanup to its nine crafting slots. Open the backpack GUI, hover the NEI group, press F10, select Crafting, and open a recipe. Both crafting actions use the backpack's 3x3 crafting area. Leave its bottom-right nine storage slots empty before starting, keep the cursor empty, and leave a free player-inventory slot. Other backpack storage may remain occupied. Opening from the command instead uses the player inventory grid, not a closed backpack.
+The current source supports Adventure Backpack 1.3.13-GTNH through a dedicated NEI overlay that limits grid cleanup to its nine crafting slots. Open the backpack GUI and press F10 to resume your chain, or Shift+F10 to pick another group. Select Crafting and open a recipe. Both crafting actions use the backpack's 3x3 crafting area. Leave its bottom-right nine storage slots empty before starting, keep the cursor empty, and leave a free player-inventory slot. Other backpack storage may remain occupied. Opening from the command instead uses the player inventory grid.
 
 While opened from that backpack, remaining quantities, readiness, missing inputs, and manual completion account for player inventory plus its 48 storage slots. Hidden crafting mirror slots and result/tool/fluid slots are excluded. This does not scan closed backpacks or tank fluids. The compatibility targets the layout shipped in GTNH 2.8.4 and has passed a live handheld-backpack transfer, including storage-only ingredients and preservation of unrelated stored items.

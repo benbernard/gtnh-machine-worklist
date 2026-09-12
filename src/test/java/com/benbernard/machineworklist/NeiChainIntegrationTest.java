@@ -1,6 +1,11 @@
 package com.benbernard.machineworklist;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +59,11 @@ public class NeiChainIntegrationTest {
             "manualFluidProgressUsesMillibuckets",
             "manualStockIsSharedAcrossBranches",
             "backpackCleanupExcludesStorageAndSupplyExcludesMirrors",
+            "stationStorageDoesNotBlockButMatrixAndResultDo",
+            "closedContainerCannotOverrideTheCurrentTable",
+            "stationMappingTracksChestOffsetAndExcludesStorage",
+            "navigationIdentityTracksRecipeChoicesAndQuantities",
+            "navigationIdentityIgnoresInventoryAndRecordedProgress",
             "bulkOutputCapacityRespectsYieldAndRemainingDemand",
             "bulkOutputCapacitySharesSpaceAcrossCoproducts",
             "bulkOutputCapacityPreservesNbtAndRealInventory",
@@ -128,6 +138,141 @@ public class NeiChainIntegrationTest {
                     .contains(i),
                 cleanup.contains(slots.get(i)));
         }
+    }
+
+    public void stationStorageDoesNotBlockButMatrixAndResultDo() {
+        TableFixture table = new TableFixture(122);
+        FixtureGui gui = new FixtureGui(table);
+        table.storage.setInventorySlotContents(0, new ItemStack(Items.diamond, 64));
+        table.player.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 64));
+        for (net.minecraft.inventory.Slot slot : table.inventorySlots)
+            assertFalse(CraftingInventory.occupiedCraftingSlot(gui, slot, table));
+        table.matrix.setInventorySlotContents(4, new ItemStack(Items.stick));
+        assertTrue(CraftingInventory.occupiedCraftingSlot(gui, table.getSlot(5), table));
+        table.matrix.setInventorySlotContents(4, null);
+        table.result.setInventorySlotContents(0, new ItemStack(Items.gold_ingot));
+        assertTrue(CraftingInventory.occupiedCraftingSlot(gui, table.getSlot(0), table));
+        assertEquals(64, table.storage.getStackInSlot(0).stackSize);
+    }
+
+    public void closedContainerCannotOverrideTheCurrentTable() {
+        TableFixture closed = new TableFixture(0);
+        closed.matrix.setInventorySlotContents(0, new ItemStack(Items.stick));
+        TableFixture current = new TableFixture(122);
+        FixtureGui oldGui = new FixtureGui(closed), currentGui = new FixtureGui(current);
+        assertNull(CraftingInventory.activeGui(oldGui, current));
+        assertFalse(CraftingInventory.backpack(oldGui, current));
+        assertSame(currentGui, CraftingInventory.activeGui(currentGui, current));
+        assertNull(CraftingInventory.activeGui(currentGui, null));
+        for (net.minecraft.inventory.Slot slot : current.inventorySlots)
+            assertFalse(CraftingInventory.occupiedCraftingSlot(currentGui, slot, current));
+        assertEquals(1, closed.matrix.getStackInSlot(0).stackSize);
+    }
+
+    public void stationMappingTracksChestOffsetAndExcludesStorage() {
+        for (int offset : new int[] { 0, 122, 134 }) {
+            TableFixture table = new TableFixture(offset);
+            FixtureGui gui = new FixtureGui(table);
+            StationCraftingOverlay overlay = new StationCraftingOverlay(table);
+            List<codechicken.nei.PositionedStack> ingredients = new ArrayList<>();
+            for (int i = 0; i < 9; i++) ingredients.add(
+                new codechicken.nei.PositionedStack(new ItemStack(Items.iron_ingot), 25 + i % 3 * 18, 6 + i / 3 * 18));
+            ShapedRecipeHandler handler = new ShapedRecipeHandler(new ItemStack(Items.gold_ingot)) {
+
+                @Override
+                public List<codechicken.nei.PositionedStack> getIngredientStacks(int recipe) {
+                    return ingredients;
+                }
+            };
+            assertTrue(overlay.canFillCraftingGrid(gui, handler, 0));
+            net.minecraft.inventory.Slot[][] mapped = overlay.mapIngredSlots(gui, ingredients);
+            for (int i = 0; i < 9; i++) {
+                assertEquals(1, mapped[i].length);
+                assertSame(table.getSlot(i + 1), mapped[i][0]);
+            }
+            assertEquals(
+                9,
+                overlay.getCraftMatrixSlots(gui, handler)
+                    .size());
+            assertFalse(overlay.canMoveFrom(table.getSlot(10), gui));
+            assertTrue(overlay.canMoveFrom(table.getSlot(11), gui));
+            table.storage.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 64));
+            table.player.setInventorySlotContents(0, new ItemStack(Items.iron_ingot, 9));
+            assertEquals(
+                9,
+                table.inventorySlots.stream()
+                    .filter(slot -> slot.getHasStack() && overlay.canMoveFrom(slot, gui))
+                    .mapToInt(slot -> slot.getStack().stackSize)
+                    .sum());
+            ingredients.add(new codechicken.nei.PositionedStack(new ItemStack(Items.stick), 79, 6));
+            assertFalse(overlay.canFillCraftingGrid(gui, handler, 0));
+            assertEquals(64, table.storage.getStackInSlot(0).stackSize);
+            assertEquals(9, table.player.getStackInSlot(0).stackSize);
+        }
+    }
+
+    public void navigationIdentityTracksRecipeChoicesAndQuantities() {
+        List<BookmarkItem> source = new ArrayList<>();
+        recipe(source, "wire", Items.gold_ingot, 1, 4, Items.iron_ingot, 2);
+        String identity = new WorklistPlan(1, source).snapshotKey();
+        assertEquals(identity, new WorklistPlan(1, source).snapshotKey());
+        assertNotEquals(identity, new WorklistPlan(2, source).snapshotKey());
+        List<BookmarkItem> changedRecipe = new ArrayList<>();
+        recipe(changedRecipe, "other wire recipe", Items.gold_ingot, 1, 4, Items.stick, 2);
+        assertNotEquals(identity, new WorklistPlan(1, changedRecipe).snapshotKey());
+        List<BookmarkItem> changedQuantity = new ArrayList<>();
+        recipe(changedQuantity, "wire", Items.gold_ingot, 1, 5, Items.iron_ingot, 2);
+        assertNotEquals(identity, new WorklistPlan(1, changedQuantity).snapshotKey());
+    }
+
+    public void navigationIdentityIgnoresInventoryAndRecordedProgress() {
+        List<BookmarkItem> source = new ArrayList<>();
+        recipe(source, "wire", Items.gold_ingot, 1, 4, Items.iron_ingot, 2);
+        WorklistPlan plan = new WorklistPlan(1, source);
+        String identity = plan.snapshotKey();
+        plan.remainingChain(new ItemStack[] { new ItemStack(Items.gold_ingot, 2) });
+        plan.completed.put(WorklistPlan.outputKey(BookmarkItem.of(1, new ItemStack(Items.gold_ingot))), 3L);
+        plan.remainingChain(new ItemStack[0]);
+        assertEquals(identity, plan.snapshotKey());
+    }
+
+    /** Installed TConstruct 1.13.57 uses an InventoryCrafting subclass and SlotCrafting result. */
+    private static final class TableFixture extends net.minecraft.inventory.Container {
+
+        final net.minecraft.inventory.InventoryCrafting matrix = new net.minecraft.inventory.InventoryCrafting(
+            this,
+            3,
+            3) {};
+        final net.minecraft.inventory.InventoryCraftResult result = new net.minecraft.inventory.InventoryCraftResult();
+        final net.minecraft.inventory.InventoryBasic storage = new net.minecraft.inventory.InventoryBasic(
+            "Chest",
+            false,
+            1);
+        final net.minecraft.entity.player.InventoryPlayer player = new net.minecraft.entity.player.InventoryPlayer(
+            null);
+
+        TableFixture(int offset) {
+            addSlotToContainer(new net.minecraft.inventory.SlotCrafting(null, matrix, result, 0, 124 + offset, 35));
+            for (int i = 0; i < 9; i++) addSlotToContainer(
+                new net.minecraft.inventory.Slot(matrix, i, 30 + offset + i % 3 * 18, 17 + i / 3 * 18));
+            addSlotToContainer(new net.minecraft.inventory.Slot(storage, 0, 30, 17));
+            addSlotToContainer(new net.minecraft.inventory.Slot(player, 0, 8 + offset, 84));
+        }
+
+        @Override
+        public boolean canInteractWith(net.minecraft.entity.player.EntityPlayer player) {
+            return true;
+        }
+    }
+
+    private static final class FixtureGui extends net.minecraft.client.gui.inventory.GuiContainer {
+
+        FixtureGui(net.minecraft.inventory.Container container) {
+            super(container);
+        }
+
+        @Override
+        protected void drawGuiContainerBackgroundLayer(float ticks, int x, int y) {}
     }
 
     private static BookmarkItem capacityOutput(ItemStack stack, int yield) {

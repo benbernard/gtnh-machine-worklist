@@ -181,6 +181,17 @@ public final class WorklistPlan {
     private void loadProgress() {
         String world = codechicken.nei.NEIClientConfig.getWorldPath();
         if (world == null) return;
+        progressFile = net.minecraft.client.Minecraft.getMinecraft().mcDataDir.toPath()
+            .resolve("config/machineworklist/progress")
+            .resolve(identity(world) + ".properties");
+        loadProgress(progressFile);
+    }
+
+    String snapshotKey() {
+        return identity("");
+    }
+
+    private String identity(String world) {
         // A changed group gets a new record. World/server names are hashed, never written into the file.
         StringBuilder identity = new StringBuilder(world).append(':')
             .append(groupId);
@@ -197,14 +208,10 @@ public final class WorklistPlan {
                 item.recipeId == null ? ""
                     : item.recipeId.toJsonObject()
                         .toString());
-        String name = java.util.UUID.nameUUIDFromBytes(
+        return java.util.UUID.nameUUIDFromBytes(
             identity.toString()
                 .getBytes(java.nio.charset.StandardCharsets.UTF_8))
             .toString();
-        progressFile = net.minecraft.client.Minecraft.getMinecraft().mcDataDir.toPath()
-            .resolve("config/machineworklist/progress")
-            .resolve(name + ".properties");
-        loadProgress(progressFile);
     }
 
     void loadProgress(java.nio.file.Path file) {

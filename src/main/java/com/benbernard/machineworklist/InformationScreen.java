@@ -18,6 +18,11 @@ final class InformationScreen extends WorklistGui {
     private final List<String> lines = new ArrayList<>();
     private int scroll;
 
+    @Override
+    protected GuiScreen parentScreen() {
+        return parent;
+    }
+
     InformationScreen(GuiScreen parent, String title, List<String> text) {
         this.parent = parent;
         this.title = title;
@@ -28,6 +33,7 @@ final class InformationScreen extends WorklistGui {
     public void initGui() {
         buttonList.clear();
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Back"));
+        addCloseButton();
         lines.clear();
         for (String line : text) {
             lines.addAll(fontRendererObj.listFormattedStringToWidth(line, width - 32));
@@ -49,7 +55,7 @@ final class InformationScreen extends WorklistGui {
         org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_DEPTH_TEST);
         net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xff101723);
-        drawString(fontRendererObj, fontRendererObj.trimStringToWidth(title, width - 90), 12, 15, 0x67dbc4);
+        drawString(fontRendererObj, fontRendererObj.trimStringToWidth(title, width - 150), 12, 15, 0x67dbc4);
         drawString(
             fontRendererObj,
             "Lines " + (scroll + 1) + "-" + Math.min(lines.size(), scroll + visible()) + " of " + lines.size(),
@@ -58,7 +64,7 @@ final class InformationScreen extends WorklistGui {
             0xa9b7cb);
         for (int i = scroll; i < Math.min(lines.size(), scroll + visible()); i++)
             drawString(fontRendererObj, lines.get(i), 16, 48 + (i - scroll) * 12, 0xffffff);
-        drawString(fontRendererObj, "Scroll: arrows/wheel/PgUp/PgDn. Esc: back.", 12, height - 18, 0xa9b7cb);
+        drawString(fontRendererObj, "Wheel: scroll. Esc: back. F10: close worklist.", 12, height - 18, 0xa9b7cb);
         super.drawScreen(x, y, ticks);
     }
 
