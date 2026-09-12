@@ -28,6 +28,8 @@ public class WorklistScreen extends WorklistGui {
     private List<WorklistPlan.Step> allSteps = new ArrayList<>();
     private final List<String> explanations = new ArrayList<>();
     private CraftingAvailability crafting;
+    private CraftingChain chainPreview;
+    private CraftingChain.Selection chainSelection;
     private String notice;
     private boolean initialTab = true;
     private WorklistPlan.Step selected;
@@ -88,6 +90,28 @@ public class WorklistScreen extends WorklistGui {
         return error == null && crafting != null && crafting.batches > 0 && !CraftingSession.running();
     }
 
+    private boolean canCraftChain() {
+        return error == null && chainSelection != null && chainSelection.next != null && !CraftingSession.running();
+    }
+
+    private void inspectChain() {
+        chainPreview = null;
+        chainSelection = null;
+        if (error != null || mc.thePlayer == null) return;
+        try {
+            ItemStack[] inventory = availableInventory();
+            chainPreview = new CraftingChain(
+                plan.chainRequest(selected == null ? null : selected.id, inventory),
+                inventory);
+            chainSelection = chainPreview.inspect(inventory, step -> CraftingAvailability.inspect(parent, step));
+        } catch (RuntimeException failure) {
+            chainSelection = new CraftingChain.Selection();
+            chainSelection.reasons.add(
+                "Could not prepare the chain: " + failure.getClass()
+                    .getSimpleName());
+        }
+    }
+
     @Override
     public void initGui() {
         if (splitPane()) showMissing = false;
@@ -97,6 +121,7 @@ public class WorklistScreen extends WorklistGui {
 
     private void buttons() {
         crafting = selected != null && selected.crafting ? CraftingAvailability.inspect(parent, selected) : null;
+        inspectChain();
         buttonList.clear();
         buttonList.add(new GuiButton(6, width - 192, 10, 118, 20, "Available stock"));
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, selected == null ? "Close" : "Back"));
@@ -109,10 +134,10 @@ public class WorklistScreen extends WorklistGui {
                 GuiButton craft = new GuiButton(7, 16 + buttonWidth, 42, buttonWidth, 20, "Craft 1 batch [F]");
                 craft.enabled = canCraftSelected();
                 buttonList.add(craft);
-                GuiButton all = new GuiButton(8, 20 + buttonWidth * 2, 42, buttonWidth, 20, "Craft all ready [G]");
-                all.enabled = canCraftSelected();
-                buttonList.add(all);
             }
+            GuiButton chain = new GuiButton(8, 20 + buttonWidth * 2, 42, buttonWidth, 20, "Craft chain [G]");
+            chain.enabled = canCraftChain();
+            buttonList.add(chain);
         } else {
             int machines = (int) allSteps.stream()
                 .filter(step -> !step.crafting)
@@ -123,9 +148,26 @@ public class WorklistScreen extends WorklistGui {
             buttonList.add(new GuiButton(12, 192, 42, 50, 20, (tab == 2 ? "> " : "") + "All " + allSteps.size()));
             buttonList.add(
                 new GuiButton(2, 246, 42, Math.min(94, width - 258), 20, readyOnly ? "Ready only" : "All statuses"));
+            int queueWidth = (width - 32) / 3;
             if (!splitPane())
-                buttonList.add(new GuiButton(3, 12, 68, 120, 20, showMissing ? "Work queue" : "Missing inputs"));
-            buttonList.add(new GuiButton(9, width - 118, 68, 106, 20, "Choose group [B]"));
+                buttonList.add(new GuiButton(3, 12, 68, queueWidth, 20, showMissing ? "Work queue" : "Missing inputs"));
+            GuiButton group = new GuiButton(
+                8,
+                16 + queueWidth,
+                68,
+                queueWidth,
+                20,
+                queueWidth < 100 ? "Group [G]" : "Craft group [G]");
+            group.enabled = canCraftChain();
+            buttonList.add(group);
+            buttonList.add(
+                new GuiButton(
+                    9,
+                    20 + queueWidth * 2,
+                    68,
+                    queueWidth,
+                    20,
+                    queueWidth < 110 ? "Choose [B]" : "Choose group [B]"));
         }
         explainSelection();
     }
@@ -171,7 +213,7 @@ public class WorklistScreen extends WorklistGui {
         if (selected.crafting) {
             crafting = CraftingAvailability.inspect(parent, selected);
             if (crafting.reasons.isEmpty()) {
-                StringBuilder preview = new StringBuilder("Craft all ready: ").append(crafting.batches)
+                StringBuilder preview = new StringBuilder("Ready now for this recipe: ").append(crafting.batches)
                     .append(" batches");
                 for (BookmarkItem output : selected.outputs) preview.append(" / ")
                     .append(crafting.batches * output.factor)
@@ -180,6 +222,18 @@ public class WorklistScreen extends WorklistGui {
                 explanations.add(preview.toString());
                 explanations.add(crafting.limit);
             } else explanations.addAll(crafting.reasons);
+        }
+        if (chainSelection != null) {
+            explanations.add(
+                "Craft chain includes this recipe and its selected upstream dependencies; machines remain manual.");
+            if (chainSelection.next != null) explanations.add(
+                "Chain: " + chainSelection.remainingRecipes
+                    + " recipe operations remaining. Next: "
+                    + CraftingChain.name(chainSelection.next)
+                    + " / up to "
+                    + chainSelection.batches
+                    + " batches, then continue with the next ready recipe.");
+            else explanations.addAll(chainSelection.reasons);
         }
     }
 
@@ -357,8 +411,8 @@ public class WorklistScreen extends WorklistGui {
                 0xa9b7cb);
         }
         line(
-            selected == null ? "Arrows + Enter: recipe; I: item; Tab: buttons; C: stock."
-                : selected.crafting ? "F: one; G: all; B: why; I: item; Tab: controls; Esc: back."
+            selected == null ? "G: craft group; Arrows + Enter: recipe; C: stock; Tab: controls."
+                : selected.crafting ? "F: one; G: chain; B: why; I: item; Tab: controls; Esc: back."
                     : "N: NEI; B: why; C: stock; I: item; Enter: upstream.",
             14,
             height - 18,
@@ -443,15 +497,37 @@ public class WorklistScreen extends WorklistGui {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        if (button.id == 7 || button.id == 8) {
+        if (button.id == 8) {
+            // Preserve the detail's scope if a last-moment inventory change completes its target.
+            codechicken.nei.recipe.Recipe.RecipeId target = selected == null ? null : selected.id;
+            refresh();
+            if (target != null && selected == null) {
+                mc.displayGuiScreen(
+                    new InformationScreen(
+                        this,
+                        "Crafting result",
+                        java.util.Collections.singletonList("No work remains for the selected recipe.")));
+                return;
+            }
+            inspectChain();
+            if (canCraftChain()) CraftingSession
+                .startChain(this, (net.minecraft.client.gui.inventory.GuiContainer) parent, chainPreview);
+            else mc.displayGuiScreen(
+                new InformationScreen(
+                    this,
+                    "Why chain crafting is unavailable",
+                    chainSelection == null
+                        ? java.util.Collections.singletonList(error == null ? "No chain is available." : error)
+                        : chainSelection.reasons.isEmpty()
+                            ? java.util.Collections.singletonList("No crafting work remains in this request.")
+                            : chainSelection.reasons));
+            return;
+        }
+        if (button.id == 7) {
             refresh();
             if (canCraftSelected()) {
-                CraftingSession.start(
-                    this,
-                    (net.minecraft.client.gui.inventory.GuiContainer) parent,
-                    plan,
-                    selected.id,
-                    button.id == 7 ? 1 : crafting.batches);
+                CraftingSession
+                    .start(this, (net.minecraft.client.gui.inventory.GuiContainer) parent, plan, selected.id, 1);
             } else mc.displayGuiScreen(
                 new InformationScreen(
                     this,
@@ -589,7 +665,7 @@ public class WorklistScreen extends WorklistGui {
             buttons();
             return;
         }
-        if ((key == org.lwjgl.input.Keyboard.KEY_F || key == org.lwjgl.input.Keyboard.KEY_G) && selected != null
+        if ((key == org.lwjgl.input.Keyboard.KEY_F && selected != null || key == org.lwjgl.input.Keyboard.KEY_G)
             && !org.lwjgl.input.Keyboard.isRepeatEvent()) {
             actionPerformed(new GuiButton(key == org.lwjgl.input.Keyboard.KEY_F ? 7 : 8, 0, 0, ""));
             return;

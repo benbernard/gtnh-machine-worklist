@@ -57,7 +57,16 @@ public class NeiChainIntegrationTest {
             "bulkOutputCapacityRespectsYieldAndRemainingDemand",
             "bulkOutputCapacitySharesSpaceAcrossCoproducts",
             "bulkOutputCapacityPreservesNbtAndRealInventory",
-            "bulkOutputCapacityHandlesNonStackablesAndHugeCounts");
+            "bulkOutputCapacityHandlesNonStackablesAndHugeCounts",
+            "chainCraftsThreeStagesAndStopsAtExactTarget",
+            "chainSharesIngredientsAndBatchSurplus",
+            "selectedChainExcludesOtherTargets",
+            "selectedChainPreservesOwnedPartialBatches",
+            "selectedIntermediateUsesCurrentDownstreamDemand",
+            "chainManualStockDoesNotInventPhysicalIngredients",
+            "chainPausesAtMachinesAndResumesWithTheirOutputs",
+            "chainSkipsBlockedBranchAndRechecksAfterProgress",
+            "chainCannotReplenishConsumedOutputsWithoutANewRequest");
     }
 
     @Test
@@ -540,6 +549,346 @@ public class NeiChainIntegrationTest {
         } finally {
             java.nio.file.Files.deleteIfExists(file);
             java.nio.file.Files.deleteIfExists(directory);
+        }
+    }
+
+    public void chainCraftsThreeStagesAndStopsAtExactTarget() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "planks", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        recipe(recipes, "sticks", Items.redstone, 1, 1, Items.gold_ingot, 3);
+        recipe(recipes, "target", Items.diamond, 1, 4, Items.redstone, 2);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 12));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(4, count(inventory, Items.diamond));
+        assertEquals(0, count(inventory, Items.iron_ingot));
+        assertEquals(0, count(inventory, Items.gold_ingot));
+        assertEquals(0, count(inventory, Items.redstone));
+        assertEquals(24, chain.completed);
+        assertEquals(3, chain.craftedRecipes());
+    }
+
+    public void chainSharesIngredientsAndBatchSurplus() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "shared", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        recipe(recipes, "left", Items.diamond, 1, 1, Items.gold_ingot, 2);
+        recipe(recipes, "right", Items.redstone, 1, 1, Items.gold_ingot, 3);
+        recipe(
+            recipes,
+            "target",
+            Items.emerald,
+            1,
+            1,
+            new ItemStack(Items.diamond, 2),
+            new ItemStack(Items.redstone, 2));
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 4), new ItemStack(Items.gold_ingot, 3));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(1, count(inventory, Items.emerald));
+        assertEquals(1, count(inventory, Items.gold_ingot));
+        assertEquals(0, count(inventory, Items.iron_ingot));
+        assertEquals(9, chain.completed);
+    }
+
+    public void selectedChainExcludesOtherTargets() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "shared", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        RecipeId left = recipe(recipes, "left", Items.diamond, 1, 2, Items.gold_ingot, 3);
+        RecipeId right = recipe(recipes, "right", Items.redstone, 1, 20, Items.gold_ingot, 4);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 10), new ItemStack(Items.gold_ingot, 2));
+        WorklistPlan original = new WorklistPlan(1, recipes);
+        WorklistPlan request = original.chainRequest(left, inventory);
+        assertEquals(0, runs(request.remainingChain(inventory), right));
+        CraftingChain chain = new CraftingChain(request, inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(2, count(inventory, Items.diamond));
+        assertEquals(0, count(inventory, Items.redstone));
+        assertEquals(8, count(inventory, Items.iron_ingot));
+        assertEquals(20, runs(original.remainingChain(inventory), right));
+    }
+
+    public void selectedChainPreservesOwnedPartialBatches() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "shared", Items.gold_ingot, 2, 1, Items.iron_ingot, 1);
+        RecipeId target = recipe(recipes, "target", Items.diamond, 4, 3, Items.gold_ingot, 3);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 10), new ItemStack(Items.diamond, 5));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        WorklistPlan request = plan.chainRequest(target, inventory);
+        assertEquals(runs(plan.remainingChain(inventory), target), runs(request.remainingChain(inventory), target));
+        CraftingChain chain = new CraftingChain(request, inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(13, count(inventory, Items.diamond));
+        assertEquals(7, count(inventory, Items.iron_ingot));
+        assertEquals(5, chain.completed);
+    }
+
+    public void selectedIntermediateUsesCurrentDownstreamDemand() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId intermediate = recipe(recipes, "intermediate", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
+        recipe(recipes, "target", Items.diamond, 1, 10, Items.gold_ingot, 2);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(
+            new ItemStack(Items.iron_ingot, 10),
+            new ItemStack(Items.diamond, 8),
+            new ItemStack(Items.gold_ingot, 1));
+        WorklistPlan request = new WorklistPlan(1, recipes).chainRequest(intermediate, inventory);
+        CraftingChain chain = new CraftingChain(request, inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(4, count(inventory, Items.gold_ingot));
+        assertEquals(8, count(inventory, Items.diamond));
+        assertEquals(7, count(inventory, Items.iron_ingot));
+        assertEquals(3, chain.completed);
+    }
+
+    public void chainManualStockDoesNotInventPhysicalIngredients() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "intermediate", Items.redstone, 1, 1, Items.iron_ingot, 1);
+        RecipeId target = recipe(recipes, "target", Items.diamond, 1, 2, Items.redstone, 1);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 10));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        plan.setCompleted(
+            plan.progressOutputs()
+                .get(0),
+            2);
+        CraftingChain chain = new CraftingChain(plan.chainRequest(target, inventory), inventory);
+        org.junit.Assert.assertTrue(drain(chain, inventory).remainingRecipes > 0);
+        assertEquals(0, chain.completed);
+        assertEquals(10, count(inventory, Items.iron_ingot));
+        assertEquals(0, count(inventory, Items.diamond));
+    }
+
+    public void chainPausesAtMachinesAndResumesWithTheirOutputs() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "before", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
+        RecipeId machine = recipe(recipes, "machine", Items.redstone, 1, 1, Items.gold_ingot, 1);
+        recipe(recipes, "after", Items.diamond, 1, 3, Items.redstone, 1);
+        registerCrafting(recipes);
+        cacheHandler(machine, new MachineRecipeHandler(new ItemStack(Items.redstone)));
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 3));
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        CraftingChain chain = new CraftingChain(plan, inventory);
+        org.junit.Assert.assertTrue(
+            drain(chain, inventory).stoppedReason()
+                .contains("Manual operation"));
+        assertEquals(3, count(inventory, Items.gold_ingot));
+        assertEquals(0, count(inventory, Items.diamond));
+        // The player supplies the machine's real outputs, consuming its inputs outside the worklist.
+        inventory = stock(new ItemStack(Items.redstone, 3));
+        chain = new CraftingChain(plan.chainRequest(null, inventory), inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(3, count(inventory, Items.diamond));
+        assertEquals(3, chain.completed);
+    }
+
+    public void chainSkipsBlockedBranchAndRechecksAfterProgress() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        RecipeId left = recipe(recipes, "left", Items.diamond, 1, 2, Items.iron_ingot, 1);
+        recipe(recipes, "right", Items.redstone, 1, 2, Items.gold_ingot, 1);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 2), new ItemStack(Items.gold_ingot, 2));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        CraftingChain.Selection selection = chain.inspect(inventory, step -> {
+            CraftingAvailability result = fixtureAvailability(step);
+            if (step.id.equals(left)) {
+                result.batches = 0;
+                result.reasons.add("Grid does not fit");
+            }
+            return result;
+        });
+        assertEquals(Items.redstone, selection.next.outputs.get(0).itemStack.getItem());
+        transfer(chain, selection, inventory);
+        assertEquals(2, count(inventory, Items.redstone));
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(2, count(inventory, Items.diamond));
+        assertEquals(4, chain.completed);
+    }
+
+    public void chainCannotReplenishConsumedOutputsWithoutANewRequest() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "target", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
+        registerCrafting(recipes);
+        ItemStack[] inventory = stock(new ItemStack(Items.iron_ingot, 10));
+        CraftingChain chain = new CraftingChain(new WorklistPlan(1, recipes), inventory);
+        transfer(chain, chain.inspect(inventory, NeiChainIntegrationTest::fixtureAvailability), inventory);
+        // Simulate the completed output being consumed outside the request before the next tick.
+        inventory = stock(new ItemStack(Items.iron_ingot, 9));
+        CraftingChain.Selection stopped = chain.inspect(inventory, NeiChainIntegrationTest::fixtureAvailability);
+        assertEquals(null, stopped.next);
+        org.junit.Assert.assertTrue(
+            stopped.stoppedReason()
+                .contains("execution limit"));
+        assertEquals(1, chain.completed);
+    }
+
+    private static ItemStack[] stock(ItemStack... contents) {
+        return Arrays.copyOf(contents, 36);
+    }
+
+    private static long count(ItemStack[] inventory, Item item) {
+        long count = 0;
+        for (ItemStack stack : inventory) if (stack != null && stack.getItem() == item) count += stack.stackSize;
+        return count;
+    }
+
+    private static CraftingAvailability fixtureAvailability(WorklistPlan.Step step) {
+        CraftingAvailability result = new CraftingAvailability();
+        result.batches = step.readyRuns;
+        if (result.batches == 0) result.reasons.add("Missing physical ingredients");
+        return result;
+    }
+
+    private static CraftingChain.Selection drain(CraftingChain chain, ItemStack[] inventory) {
+        for (int i = 0; i < 100; i++) {
+            CraftingChain.Selection selection = chain.inspect(inventory, NeiChainIntegrationTest::fixtureAvailability);
+            if (selection.next == null) return selection;
+            transfer(chain, selection, inventory);
+        }
+        throw new AssertionError("Chain failed to terminate");
+    }
+
+    private static void transfer(CraftingChain chain, CraftingChain.Selection selection, ItemStack[] inventory) {
+        int batches = (int) Math.min(64, selection.batches);
+        WorklistPlan.Step step = selection.next;
+        for (BookmarkItem input : step.inputs) {
+            if (input.factor == 0) continue;
+            long needed = input.factor * batches;
+            for (int i = 0; i < inventory.length; i++)
+                if (inventory[i] != null && WorklistPlan.matchesInput(input, BookmarkItem.of(0, inventory[i]))) {
+                    int amount = (int) Math.min(needed, inventory[i].stackSize);
+                    needed -= amount;
+                    inventory[i].stackSize -= amount;
+                    if (inventory[i].stackSize == 0) inventory[i] = null;
+                }
+            assertEquals("A shared input was overspent", 0, needed);
+        }
+        for (BookmarkItem output : step.outputs) {
+            long produced = output.factor * batches;
+            for (int i = 0; i < inventory.length && produced > 0; i++) {
+                if (inventory[i] == null) {
+                    inventory[i] = output.itemStack.copy();
+                    inventory[i].stackSize = 0;
+                }
+                if (!inventory[i].isItemEqual(output.itemStack)) continue;
+                int amount = (int) Math.min(produced, 64 - inventory[i].stackSize);
+                inventory[i].stackSize += amount;
+                produced -= amount;
+            }
+            assertEquals("Fixture output space exhausted", 0, produced);
+        }
+        chain.record(step.id, batches);
+    }
+
+    private static void registerCrafting(List<BookmarkItem> recipes) throws Exception {
+        for (BookmarkItem item : recipes) if (item.type == BookmarkItemType.RESULT)
+            cacheHandler(item.recipeId, new ShapedRecipeHandler(item.itemStack));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void cacheHandler(RecipeId recipe, ShapedRecipeHandler handler) throws Exception {
+        java.lang.reflect.Field field = codechicken.nei.recipe.RecipeHandlerRef.class
+            .getDeclaredField("recipeRefCache");
+        field.setAccessible(true);
+        ((java.util.Map<RecipeId, codechicken.nei.recipe.RecipeHandlerRef>) field.get(null))
+            .put(recipe, codechicken.nei.recipe.RecipeHandlerRef.of(handler, 0));
+    }
+
+    /** Handler metadata without NEI's renderer initialization; chain math remains the real NEI engine. */
+    public static class ShapedRecipeHandler implements codechicken.nei.recipe.IRecipeHandler {
+
+        private final ItemStack output;
+
+        ShapedRecipeHandler(ItemStack output) {
+            this.output = output;
+        }
+
+        @Override
+        public codechicken.nei.PositionedStack getResultStack(int recipe) {
+            return new codechicken.nei.PositionedStack(output, 0, 0);
+        }
+
+        @Override
+        public List<codechicken.nei.PositionedStack> getOtherStacks(int recipe) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public String getRecipeName() {
+            return "Fixture crafting";
+        }
+
+        @Override
+        public int numRecipes() {
+            return 1;
+        }
+
+        @Override
+        public void drawBackground(int recipe) {}
+
+        @Override
+        public void drawForeground(int recipe) {}
+
+        @Override
+        public void onUpdate() {}
+
+        @Override
+        public List<codechicken.nei.PositionedStack> getIngredientStacks(int recipe) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean hasOverlay(net.minecraft.client.gui.inventory.GuiContainer gui,
+            net.minecraft.inventory.Container container, int recipe) {
+            return false;
+        }
+
+        @Override
+        public codechicken.nei.api.IRecipeOverlayRenderer getOverlayRenderer(
+            net.minecraft.client.gui.inventory.GuiContainer gui, int recipe) {
+            return null;
+        }
+
+        @Override
+        public codechicken.nei.api.IOverlayHandler getOverlayHandler(
+            net.minecraft.client.gui.inventory.GuiContainer gui, int recipe) {
+            return null;
+        }
+
+        @Override
+        public List<String> handleTooltip(codechicken.nei.recipe.GuiRecipe<?> gui, List<String> tooltip, int recipe) {
+            return tooltip;
+        }
+
+        @Override
+        public List<String> handleItemTooltip(codechicken.nei.recipe.GuiRecipe<?> gui, ItemStack stack,
+            List<String> tooltip, int recipe) {
+            return tooltip;
+        }
+
+        @Override
+        public boolean keyTyped(codechicken.nei.recipe.GuiRecipe<?> gui, char character, int key, int recipe) {
+            return false;
+        }
+
+        @Override
+        public boolean mouseClicked(codechicken.nei.recipe.GuiRecipe<?> gui, int button, int recipe) {
+            return false;
+        }
+    }
+
+    public static class MachineRecipeHandler extends ShapedRecipeHandler {
+
+        MachineRecipeHandler(ItemStack output) {
+            super(output);
+        }
+
+        @Override
+        public String getRecipeName() {
+            return "Fixture machine";
         }
     }
 

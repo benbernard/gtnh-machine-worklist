@@ -1,0 +1,26 @@
+{
+  "fixture_logs": 100,
+  "records": [
+    {
+      "save": "playerdata",
+      "logs": 0,
+      "planks": 0,
+      "sticks": 200,
+      "unrelated_inventory_unchanged": true
+    },
+    {
+      "save": "level.dat",
+      "logs": 0,
+      "planks": 0,
+      "sticks": 200,
+      "unrelated_inventory_unchanged": true
+    }
+  ],
+  "completed_batches": [
+    64,
+    32,
+    32,
+    1,
+    71
+  ]
+}

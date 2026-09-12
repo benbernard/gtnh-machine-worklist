@@ -15,7 +15,7 @@ Run `/machineworklist` to open the named group picker. Press **E** or choose **E
 
 The GTNH recipe uses two flint and two logs per table. If you own no tables, sixteen of each supplies the example. Obtain these materials normally. The mod never grants ingredients.
 
-The Crafting tab opens automatically. Press **Enter** to view the recipe. **Craft 1 batch / F** runs it once. **Craft all ready / G** runs up to the previewed quantity, bounded by remaining work, physical ingredients and available output space. The result screen reports what completed. **Escape** closes the crafting container and cancels further batches.
+The Crafting tab opens automatically. Press **Enter** to view the recipe. **Craft 1 batch / F** runs it once. **Craft chain / G** makes the selected upstream crafting ingredients and continues toward the remaining target. From the queue, **Craft group / G** advances every selected crafting recipe in the group, regardless of tab or filter. These actions use real ingredients and available output space; machine operations remain manual. The result reports completion or partial progress with blockers. Fix a blocker and start again to resume. **Escape** closes the crafting container and cancels further transfers.
 
 Open a real crafting table or supported Adventure Backpack first and use **F10** for 3×3 recipes. Commands use the player inventory's 2×2 grid. Empty the grid and put away any cursor item before opening the worklist; if blocked, the explanation appears over the original container and its items stay in place.
 

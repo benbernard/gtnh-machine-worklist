@@ -1,5 +1,11 @@
 # Validation record
 
+## Recipe chains for 0.1.0-beta.3 — 2026-09-11
+
+All 47 automated checks and the local build passed. Live player-grid tests exercised log → plank → stick chains through the actual G action, both from a selected downstream recipe and from the group queue. Existing outputs reduced later requests, exhausted raw materials produced a partial-progress message, and supplying the missing logs allowed the chain to resume to exactly 200 sticks. F still performed exactly one batch. Both saved inventories matched expected consumption and outputs, with unrelated items unchanged.
+
+See the [chain implementation plan and evidence](chained-crafting-plan.md) for the tested candidate checksum, per-request results and exact coverage limits. Backpack chains, returned tools, cancellation mid-chain and multiplayer remain unverified in live beta.3 gameplay. Earlier speed and beta-readiness evidence below applies to the named prior revisions.
+
 ## Faster crafting for 0.1.0-beta.2 — 2026-09-11
 
 The current source uses NEI bulk transfers, with readiness/output checks between calls and short client-tick bursts. All 38 automated tests and packaging passed locally. Through the real player-inventory worklist, 64/256/349 batches completed in 30.5/113.2/156.6 ms; the one-batch F action remained exact. Both saved inventories matched all expected outputs and consumed inputs. The original test inventory, bookmarks and published beta JAR were restored afterward.

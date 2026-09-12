@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-beta.3
+
+- Craft chain (G) now makes selected upstream crafting ingredients and continues into downstream recipes, recalculating from inventory after each transfer.
+- Add Craft group (G) to advance all selected crafting recipes from the queue. Machine operations remain manual; a partially finished chain reports its blockers and can be resumed with a new request.
+- Keep Craft 1 batch (F), NEI's fast bulk transfers, inventory/output checks, backpack slot boundaries and cancellation between bursts.
+- Bound every recipe to its original remaining demand, preserve selected-branch scope and existing stock, and stop instead of repeatedly replenishing consumed outputs.
+- Add nine integration checks for multi-stage chains, shared stock/surplus, isolated recipe requests, manual stock, machine boundaries, blocked branches and finite execution.
+
 ## 0.1.0-beta.2
 
 - Speed up Craft all ready by using NEI's bulk grid transfers instead of one batch every two ticks.
