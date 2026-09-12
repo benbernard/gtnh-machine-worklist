@@ -94,8 +94,7 @@ abstract class WorklistGui extends GuiScreen {
     static String itemName(ItemStack stack) {
         if (stack == null) return "Unknown item; reselect this recipe in NEI";
         String name = stack.getDisplayName();
-        String id = String.valueOf(net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem()));
-        if (id.endsWith("gt.integrated_circuit")) name += " (configuration " + stack.getItemDamage() + ")";
+        if (VirtualInputs.isProgrammedCircuit(stack)) name += " (configuration " + stack.getItemDamage() + ")";
         return name;
     }
 

@@ -41,6 +41,10 @@ Group numbers are local to your bookmarks. `/machineworklist 16` only works if y
 - **R**: toggle ready-only. **M**: overall missing inputs at any window size.
 - **C**: available output stock. **Escape**: back.
 
+Machine operations show **READY first**, then **WAITING**, with **largest remaining run counts first** within each group. Partially ready operations are in the ready group. This applies to machine rows in Machines and All; inventory and Available stock updates recalculate the order.
+
+A reusable **Programmed / Programmable Circuit** is a virtual machine setting and never missing. Recipe details show its configuration number: set it in the machine's ghost circuit slot. Other reusable tools and consumed circuits still require physical items.
+
 Recipe details name missing inputs and other active blockers with recovery steps. They also explain when ingredients or inventory space limit bulk crafting. Ready means physical ingredients match; it does not verify machines, voltage or power. Holding a crafting shortcut never queues repeated requests.
 
 Worklist screens do not pause the world. **H** in the stock editor retains its separate **Add half remaining** action; **?** there opens the stock explanation.

@@ -69,6 +69,7 @@ final class CraftingAvailability {
             java.util.Map<String, BookmarkItem> inputs = new java.util.LinkedHashMap<>();
             java.util.Map<String, Long> counts = new java.util.LinkedHashMap<>();
             for (BookmarkItem input : step.inputs) {
+                if (VirtualInputs.isCircuitSetting(input)) continue;
                 String key = WorklistPlan.outputKey(input);
                 inputs.putIfAbsent(key, input);
                 counts.put(

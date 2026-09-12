@@ -406,6 +406,7 @@ public final class WorklistPlan {
         for (Step step : result) {
             List<BatchReadiness.Ingredient> requirements = new ArrayList<>();
             for (BookmarkItem input : step.inputs) {
+                if (VirtualInputs.isCircuitSetting(input)) continue;
                 int[] matches = java.util.stream.IntStream.range(0, stockItems.size())
                     .filter(index -> matchesInput(input, stockItems.get(index)))
                     .toArray();
@@ -426,6 +427,7 @@ public final class WorklistPlan {
         Map<String, BookmarkItem> shortages = new LinkedHashMap<>();
         for (BookmarkItem input : math.recipeIngredients) {
             if (!active.contains(input.recipeId)) continue;
+            if (VirtualInputs.isCircuitSetting(input)) continue;
             if (input.factor == 0) {
                 boolean owned = false;
                 for (ItemStack stack : inventory) {

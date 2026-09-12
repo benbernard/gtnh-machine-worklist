@@ -1,5 +1,11 @@
 # Validation record
 
+## Virtual circuits and machine order for 0.1.0-beta.7 — 2026-09-12
+
+All 76 checks and the local `spotlessApply test build` passed. The suite includes five new Forge/NEI fixtures for virtual circuit configurations 0–24, preserving physical requirements and exact registry identity, ready/partial/waiting machine order, long run counts, inventory/manual-stock refreshes and unchanged crafting scheduling. The [implementation plan](virtual-circuits-and-machine-order.md) records the installed GregTech evidence, fixture-registration correction and release validation steps.
+
+No computer use or new gameplay was performed. Circuit configuration in a real machine and rendered queue ordering remain unverified live. Earlier release evidence applies only to its named version.
+
 ## Returned-tool settlement for 0.1.0-beta.6 â€” 2026-09-12
 
 The suite now has 71 checks. Seven new state-machine tests exercise quiet waits, late updates, bounded recovery, unknown-item refusal, fixed deadlines and latency bounds. Three new Forge/NEI fixtures cover real input versus mirror/storage/result slot boundaries, preserving tool damage/NBT, metadata-selected tool identity and snapshot changes. The [returned-tools plan](returned-tools-plan.md) explains the installed backpack's synchronization paths, deferred output verification and remaining acceptance checks.
