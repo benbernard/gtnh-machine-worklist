@@ -6,7 +6,7 @@ Use both ingredient supply and overflow space exposed by the currently open Adve
 
 ## Installed-container evidence
 
-Inspected Adventure Backpack 1.3.13-GTNH and TConstruct 1.13.57-GTNH locally. Backpack slots 36–83 are real storage; 65, 66, 67, 73, 74, 75, 81, 82, 83 are also the real crafting grid. Only the other 39 storage slots are overflow destinations. Utility slots 84–89, hidden mirrors 90–98 and result 99 are excluded. The held hotbar item must stay in place so a handheld backpack remains open.
+Inspected Adventure Backpack 1.3.13-GTNH and TConstruct 1.13.57-GTNH locally. Backpack slots 36â€“83 are real storage; 65, 66, 67, 73, 74, 75, 81, 82, 83 are also the real crafting grid. Only the other 39 storage slots are overflow destinations. Utility slots 84â€“89, hidden mirrors 90â€“98 and result 99 are excluded. The held hotbar item must stay in place so a handheld backpack remains open.
 
 The station exposes attached inventories through ChestSlot, including side-specific insertion/extraction permissions. Use only those existing slot objects, deduplicated by inventory identity and underlying index. Exclude InventoryPlayer, InventoryCrafting, InventoryCraftResult and SlotCrafting from extra storage. Do not scan neighboring blocks or closed containers.
 
