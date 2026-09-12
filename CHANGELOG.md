@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.6
+
+- Wait for tool-return and inventory updates before advancing or completing a crafting request, including first, partial and final transfers. Defer output/stock verification until settlement; ordinary empty-grid recipes retain fast bulk transfers.
+- Refresh Adventure Backpack's hidden crafting mirror through its own synchronization method and make bounded attempts to return recognized tools from real input slots or the cursor. Preserve tool stacks and metadata-selected types; never click the result or unrelated storage during recovery.
+- Explain the wait, required inventory space and timeout recovery in game. Add tests for late updates, recovery/deadline bounds, tool identity and slot boundaries. Live returned-tool gameplay remains unverified while computer use is paused.
+
 ## 0.1.0-beta.5
 
 - F10 resumes the last unchanged group and its recipe, tab, filter, keyboard selection and scroll positions; navigation saves per world/server across client restarts.

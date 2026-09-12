@@ -6,7 +6,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. The automated suite has 61 checks, with CI builds for Windows, Linux, and macOS. Beta.5 adds remembered navigation, direct Close controls and Tinkers' crafting-station slot handling. Its new behavior has automated coverage; live beta.5 gameplay testing is deferred at the user's request. Earlier beta.4 gameplay tests covered multi-stage chains in player, table and backpack grids. See the [navigation and container plan](docs/remember-position-plan.md), [earlier gameplay audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact coverage.
+Beta for GTNH 2.8.4. The automated suite has 71 checks, with CI builds for Windows, Linux, and macOS. Beta.6 adds bounded returned-tool cleanup and waits for inventory to settle before advancing a chain. Beta.5 added remembered navigation, direct Close controls and Tinkers' crafting-station slot handling. Live testing of these new paths is deferred at the user's request. Earlier beta.4 gameplay tests covered multi-stage chains in player, table and backpack grids. See the [returned-tool plan](docs/returned-tools-plan.md), [navigation and container plan](docs/remember-position-plan.md), [earlier gameplay audit](docs/final-gameplay-audit.md) and [validation record](docs/validation.md) for exact coverage.
 
 ## Use
 
@@ -66,6 +66,8 @@ Recipe details have **Craft chain (G)**, and crafting recipes also have **Craft 
 Open the worklist with F10 from the real crafting-table GUI for 3x3 recipes (the inventory grid only supports recipes that fit). NEI autocrafting must be enabled. The current container must still be open, with an empty grid, empty cursor, a free inventory slot, and matching inputs for the next recipe. Each transfer submits up to 64 batches, then recalculates the chain from inventory, checks prerequisites and verifies output. Short bursts allow Escape to stop further transfers. The result reports completed batches across recipes and whether the chain completed or paused. A chain may make partial progress before it needs machine outputs, more ingredients, a different grid or additional space; fix the reported blocker and start a new request. Recorded stock elsewhere does not act as physical crafting supply.
 
 ### Adventure's Backpack crafting
+
+Files, screwdrivers and other reusable ingredients may remain visible briefly after a transfer. While **Returning crafting tools** is shown, the worklist waits for inventory updates and makes bounded attempts to return recognized tools to player inventory. Leave a free player slot. Recovery never clicks the result slot. If it times out, inspect the cursor/grid and reopen the actual backpack if necessary, then reopen the worklist to recalculate stock. Escape cancels further work during the wait. Ordinary recipes retain fast bulk transfers; tool-using transfers allow extra time for updates.
 
 The current source supports Adventure Backpack 1.3.13-GTNH through a dedicated NEI overlay that limits grid cleanup to its nine crafting slots. Open the backpack GUI and press F10 to resume your chain, or Shift+F10 to pick another group. Select Crafting and open a recipe. Both crafting actions use the backpack's 3x3 crafting area. Leave its bottom-right nine storage slots empty before starting, keep the cursor empty, and leave a free player-inventory slot. Other backpack storage may remain occupied. Opening from the command instead uses the player inventory grid.
 
