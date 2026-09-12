@@ -30,6 +30,7 @@ Group numbers are local to your bookmarks. `/machineworklist 16` only works if y
 
 ## Keyboard access and explanations
 
+- **H / Help** in the group picker, queue or recipe details opens six in-game topics: setup, queue, chain crafting, stock, blockers and controls. Topic numbers **1–6** work from the help menu. Text pages show the visible line range and support wheel/arrows, Page Up/Down and Home/End.
 - **Tab / Shift+Tab**: move between buttons; **Enter** activates the focused control. Unavailable actions also explain their reason through the keyboard.
 - **1 / 2 / 3**: Machines / Crafting / All. Tabs show remaining recipe counts.
 - **Arrows**: select or scroll rows. **Enter** opens a recipe or an upstream dependency.
@@ -40,11 +41,13 @@ Group numbers are local to your bookmarks. `/machineworklist 16` only works if y
 
 Recipe details name missing inputs and other active blockers with recovery steps. They also explain when ingredients or inventory space limit bulk crafting. Ready means physical ingredients match; it does not verify machines, voltage or power. Holding a crafting shortcut never queues repeated requests.
 
+Worklist screens do not pause the world. **H** in the stock editor retains its separate **Add half remaining** action; **?** there opens the stock explanation.
+
 ## Available stock is not a production counter
 
 Enter the **total output still available to this chain**, including copies in inventory. The editor shows recorded, visible and effectively credited stock and confirms saves. For example, a record of 64 with 64 in inventory credits 64; 64 in a chest plus 32 in inventory should be recorded as 96.
 
-Reduce or clear records after consuming the corresponding intermediates. Manual records reduce remaining work but cannot supply physical crafting ingredients. **H** adds half the remaining batches, rounded up; save zero or use **Clear record** to undo a record. Tab reaches the field and every action; **Page Up / Page Down** selects outputs; **?** opens help.
+Verified worklist crafting updates existing records for consumed inputs and produced outputs. Update records yourself after consuming or producing items elsewhere. Manual records reduce remaining work but cannot supply physical crafting ingredients. **H** adds half the remaining batches, rounded up; save zero or use **Clear record** to undo a record. Tab reaches the field and every action; **Page Up / Page Down** selects outputs; **?** opens help.
 
 ## Accessibility scope
 

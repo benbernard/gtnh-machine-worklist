@@ -33,6 +33,7 @@ final class InformationScreen extends WorklistGui {
             lines.addAll(fontRendererObj.listFormattedStringToWidth(line, width - 32));
             lines.add("");
         }
+        move(0);
     }
 
     private int visible() {
@@ -49,25 +50,33 @@ final class InformationScreen extends WorklistGui {
         net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xff101723);
         drawString(fontRendererObj, fontRendererObj.trimStringToWidth(title, width - 90), 12, 15, 0x67dbc4);
+        drawString(
+            fontRendererObj,
+            "Lines " + (scroll + 1) + "-" + Math.min(lines.size(), scroll + visible()) + " of " + lines.size(),
+            16,
+            33,
+            0xa9b7cb);
         for (int i = scroll; i < Math.min(lines.size(), scroll + visible()); i++)
             drawString(fontRendererObj, lines.get(i), 16, 48 + (i - scroll) * 12, 0xffffff);
-        drawString(fontRendererObj, "Arrows / wheel: scroll. Esc: back.", 12, height - 18, 0xa9b7cb);
+        drawString(fontRendererObj, "Scroll: arrows/wheel/PgUp/PgDn. Esc: back.", 12, height - 18, 0xa9b7cb);
         super.drawScreen(x, y, ticks);
     }
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        mc.displayGuiScreen(parent);
+        returnTo(parent);
     }
 
     @Override
     protected void keyTyped(char character, int key) {
         if (focusKey(key)) return;
-        if (key == Keyboard.KEY_ESCAPE) mc.displayGuiScreen(parent);
+        if (key == Keyboard.KEY_ESCAPE) returnTo(parent);
         if (key == Keyboard.KEY_DOWN) move(1);
         if (key == Keyboard.KEY_UP) move(-1);
         if (key == Keyboard.KEY_NEXT) move(visible());
         if (key == Keyboard.KEY_PRIOR) move(-visible());
+        if (key == Keyboard.KEY_HOME) move(-lines.size());
+        if (key == Keyboard.KEY_END) move(lines.size());
     }
 
     @Override

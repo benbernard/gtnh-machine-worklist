@@ -64,6 +64,9 @@ public class NeiChainIntegrationTest {
             "selectedChainPreservesOwnedPartialBatches",
             "selectedIntermediateUsesCurrentDownstreamDemand",
             "chainManualStockDoesNotInventPhysicalIngredients",
+            "chainPreservesExternalTargetStockWhileCrafting",
+            "verifiedCraftingUpdatesConsumedAndProducedStockWithoutInventingRecords",
+            "verifiedCraftingStockPersistsAndRollsBackOnSaveFailure",
             "chainPausesAtMachinesAndResumesWithTheirOutputs",
             "chainSkipsBlockedBranchAndRechecksAfterProgress",
             "chainCannotReplenishConsumedOutputsWithoutANewRequest");
@@ -662,6 +665,87 @@ public class NeiChainIntegrationTest {
         assertEquals(0, count(inventory, Items.diamond));
     }
 
+    public void chainPreservesExternalTargetStockWhileCrafting() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "target", Items.diamond, 1, 12, Items.iron_ingot, 1);
+        registerCrafting(recipes);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        BookmarkItem output = plan.progressOutputs()
+            .get(0);
+        plan.setCompleted(output, 10); // Eight held, two recorded elsewhere.
+        ItemStack[] inventory = stock(new ItemStack(Items.diamond, 8), new ItemStack(Items.iron_ingot, 4));
+        CraftingChain chain = new CraftingChain(plan.chainRequest(null, inventory), inventory);
+        assertEquals(0, drain(chain, inventory).remainingRecipes);
+        assertEquals(2, chain.completed);
+        assertEquals(10, count(inventory, Items.diamond));
+        assertEquals(2, count(inventory, Items.iron_ingot));
+        assertEquals(12, chain.plan.completed(output));
+    }
+
+    public void verifiedCraftingUpdatesConsumedAndProducedStockWithoutInventingRecords() {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "intermediate", Items.redstone, 1, 1, Items.iron_ingot, 1);
+        recipe(recipes, "target", Items.diamond, 1, 12, Items.redstone, 1);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        BookmarkItem intermediate = plan.progressOutputs()
+            .get(0),
+            target = plan.progressOutputs()
+                .get(1);
+        plan.setCompleted(intermediate, 10);
+        plan.setCompleted(target, 5);
+        ItemStack[] before = stock(
+            new ItemStack(Items.redstone, 4),
+            new ItemStack(Items.diamond, 2),
+            new ItemStack(Items.iron_ingot, 64));
+        ItemStack[] after = stock(
+            new ItemStack(Items.redstone, 2),
+            new ItemStack(Items.diamond, 4),
+            new ItemStack(Items.iron_ingot, 62));
+        plan.recordCraftedInventory(before, after);
+        assertEquals(8, plan.completed(intermediate));
+        assertEquals(7, plan.completed(target));
+        assertEquals(2, plan.completed.size());
+        assertEquals(4, count(before, Items.redstone));
+        assertEquals(2, count(after, Items.redstone));
+        plan.setCompleted(intermediate, 1); // Visible stock already exceeds this older record.
+        plan.recordCraftedInventory(before, after);
+        assertEquals(2, plan.completed(intermediate));
+    }
+
+    public void verifiedCraftingStockPersistsAndRollsBackOnSaveFailure() throws Exception {
+        List<BookmarkItem> recipes = new ArrayList<>();
+        recipe(recipes, "target", Items.diamond, 1, 12, Items.iron_ingot, 1);
+        WorklistPlan plan = new WorklistPlan(1, recipes);
+        BookmarkItem output = plan.progressOutputs()
+            .get(0);
+        java.nio.file.Path directory = java.nio.file.Files.createTempDirectory("worklist-stock-test-");
+        java.nio.file.Path file = directory.resolve("progress.properties");
+        try {
+            plan.loadProgress(file);
+            plan.setCompleted(output, 10);
+            plan.recordCraftedInventory(
+                stock(new ItemStack(Items.diamond, 8)),
+                stock(new ItemStack(Items.diamond, 10)));
+            plan.loadProgress(file);
+            assertEquals(12, plan.completed(output));
+            java.nio.file.Files.delete(file);
+            java.nio.file.Files.createDirectory(file);
+            java.nio.file.Files.write(file.resolve("occupied"), new byte[] { 1 });
+            try {
+                plan.recordCraftedInventory(
+                    stock(new ItemStack(Items.diamond, 10)),
+                    stock(new ItemStack(Items.diamond, 11)));
+                org.junit.Assert.fail("A failed save must not silently change credited stock");
+            } catch (IllegalStateException expected) {
+                assertEquals(12, plan.completed(output));
+            }
+            java.nio.file.Files.delete(file.resolve("occupied"));
+        } finally {
+            java.nio.file.Files.deleteIfExists(file);
+            java.nio.file.Files.delete(directory);
+        }
+    }
+
     public void chainPausesAtMachinesAndResumesWithTheirOutputs() throws Exception {
         List<BookmarkItem> recipes = new ArrayList<>();
         recipe(recipes, "before", Items.gold_ingot, 1, 1, Items.iron_ingot, 1);
@@ -752,6 +836,8 @@ public class NeiChainIntegrationTest {
     }
 
     private static void transfer(CraftingChain chain, CraftingChain.Selection selection, ItemStack[] inventory) {
+        ItemStack[] before = new ItemStack[inventory.length];
+        for (int i = 0; i < inventory.length; i++) before[i] = inventory[i] == null ? null : inventory[i].copy();
         int batches = (int) Math.min(64, selection.batches);
         WorklistPlan.Step step = selection.next;
         for (BookmarkItem input : step.inputs) {
@@ -781,6 +867,7 @@ public class NeiChainIntegrationTest {
             assertEquals("Fixture output space exhausted", 0, produced);
         }
         chain.record(step.id, batches);
+        chain.plan.recordCraftedInventory(before, inventory);
     }
 
     private static void registerCrafting(List<BookmarkItem> recipes) throws Exception {

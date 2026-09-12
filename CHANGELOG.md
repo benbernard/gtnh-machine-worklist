@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add six in-game help topics and a visible Help button in the picker, queue and recipe details. Explain setup, controls, chain scope, stock and recovery; show the visible line range on text pages.
+- Preserve recorded off-inventory stock while verified crafting adds outputs or consumes tracked intermediates. Persist the corrected total and keep records unchanged if saving fails.
+- Allow brief backpack cursor/grid synchronization to settle between transfers. Persistent leftovers keep the real container open, with a result in local chat, so changing screens cannot discard them.
+- Add regression coverage for external target stock, consumed/produced records, persistence and failed-save rollback.
+
 ## 0.1.0-beta.3
 
 - Craft chain (G) now makes selected upstream crafting ingredients and continues into downstream recipes, recalculating from inventory after each transfer.

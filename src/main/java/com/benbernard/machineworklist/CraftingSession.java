@@ -17,6 +17,7 @@ final class CraftingSession {
     private final long requested;
     private CraftingChain chain;
     private long completed;
+    private int cleanupWait;
 
     private CraftingSession(WorklistScreen owner, GuiContainer container, WorklistPlan plan, RecipeId recipe,
         long count) {
@@ -52,14 +53,37 @@ final class CraftingSession {
 
     private void finish(String reason, boolean restore) {
         active = null;
-        String message = chain == null ? "Crafted " + completed + " of " + requested + " requested batches. " + reason
-            : "Crafted " + chain.completed + " batches across " + chain.craftedRecipes() + " recipes. " + reason;
-        if (restore) owner.craftingFinished(message);
+        String message = chain == null
+            ? "Crafted " + completed
+                + " of "
+                + requested
+                + (requested == 1 ? " requested batch. " : " requested batches. ")
+                + reason
+            : "Crafted " + chain.completed
+                + (chain.completed == 1 ? " batch across " : " batches across ")
+                + chain.craftedRecipes()
+                + (chain.craftedRecipes() == 1 ? " recipe. " : " recipes. ")
+                + reason;
+        if (restore && !EntryFeedback.allow(container)) {
+            // A failed transfer may leave a cursor/grid stack. Changing GUIs can drop it.
+            Minecraft.getMinecraft().thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(message));
+            Minecraft.getMinecraft().ingameGUI
+                .func_110326_a("Crafting stopped. Clear the cursor/grid, then F10.", false);
+        } else if (restore) owner.craftingFinished(message);
         else Minecraft.getMinecraft().ingameGUI.func_110326_a(message, false);
     }
 
     private void advance() {
         CraftingBurst.run(this::advanceBatch, System::nanoTime);
+    }
+
+    private boolean waitForCleanup() {
+        if (completed == 0 || EntryFeedback.reasons(container)
+            .isEmpty()) return false;
+        if (++cleanupWait > 10) finish(
+            "The cursor or crafting grid did not clear after the transfer. Inspect its contents before retrying.",
+            true);
+        return true;
     }
 
     private boolean advanceBatch(int maximumBatches) {
@@ -72,6 +96,9 @@ final class CraftingSession {
             finish("Stopped because the crafting container changed or closed.", false);
             return false;
         }
+        // Server updates can briefly expose a transfer's intermediate cursor/grid state.
+        // Yield without clicks; persistent leftovers require the user's attention.
+        if (waitForCleanup()) return false;
         if (chain == null && completed >= requested) {
             finish("Request complete.", true);
             return false;
@@ -84,6 +111,7 @@ final class CraftingSession {
                     CraftingInventory.snapshot(container),
                     step -> CraftingAvailability.inspect(container, step));
                 if (selection.next == null) {
+                    if (waitForCleanup()) return false;
                     finish(selection.stoppedReason(), true);
                     return false;
                 }
@@ -98,6 +126,7 @@ final class CraftingSession {
                 }
                 CraftingAvailability available = CraftingAvailability.inspect(container, current);
                 if (!available.reasons.isEmpty()) {
+                    if (waitForCleanup()) return false;
                     finish(available.reasons.get(0), true);
                     return false;
                 }
@@ -108,10 +137,15 @@ final class CraftingSession {
                 finish("No more batches are ready. Check the inputs and available output space.", true);
                 return false;
             }
-            long before = visibleOutput(current);
+            net.minecraft.item.ItemStack[] beforeInventory = CraftingInventory.snapshot(container);
+            long before = visibleOutput(current, beforeInventory);
             boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(current.id), container, batches);
-            int verified = CraftingBurst
-                .verifiedBatches(before, visibleOutput(current), current.outputs.get(0).factor, batches);
+            net.minecraft.item.ItemStack[] afterInventory = CraftingInventory.snapshot(container);
+            int verified = CraftingBurst.verifiedBatches(
+                before,
+                visibleOutput(current, afterInventory),
+                current.outputs.get(0).factor,
+                batches);
             if (verified < 0) {
                 finish(
                     "The output change did not match the requested batches. Check the inventory before retrying.",
@@ -120,6 +154,8 @@ final class CraftingSession {
             }
             completed += verified;
             if (chain != null) chain.record(current.id, verified);
+            if (verified > 0) owner.recordCraftedInventory(beforeInventory, afterInventory, plan);
+            cleanupWait = 0;
             if (!crafted || verified != batches) {
                 finish("NEI stopped before completing the transfer. Check the grid, inputs and output space.", true);
                 return false;
@@ -142,10 +178,10 @@ final class CraftingSession {
         }
     }
 
-    private long visibleOutput(WorklistPlan.Step step) {
+    private long visibleOutput(WorklistPlan.Step step, net.minecraft.item.ItemStack[] inventory) {
         String key = WorklistPlan.outputKey(step.outputs.get(0));
         long count = 0;
-        for (net.minecraft.item.ItemStack stack : CraftingInventory.snapshot(container)) if (stack != null) {
+        for (net.minecraft.item.ItemStack stack : inventory) if (stack != null) {
             codechicken.nei.bookmark.BookmarkItem item = codechicken.nei.bookmark.BookmarkItem.of(0, stack);
             if (WorklistPlan.outputKey(item)
                 .equals(key)) count += item.amount;

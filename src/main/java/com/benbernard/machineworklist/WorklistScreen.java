@@ -123,10 +123,11 @@ public class WorklistScreen extends WorklistGui {
         crafting = selected != null && selected.crafting ? CraftingAvailability.inspect(parent, selected) : null;
         inspectChain();
         buttonList.clear();
-        buttonList.add(new GuiButton(6, width - 192, 10, 118, 20, "Available stock"));
+        buttonList.add(new GuiButton(13, width - 230, 10, 56, 20, "Help [H]"));
+        buttonList.add(new GuiButton(6, width - 170, 10, 96, 20, "Stock [C]"));
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, selected == null ? "Close" : "Back"));
         if (selected != null) {
-            int buttonWidth = (width - 32) / 3;
+            int buttonWidth = Math.min(300, (width - 32) / 3);
             GuiButton recipe = new GuiButton(4, 12, 42, buttonWidth, 20, "NEI recipe [N]");
             recipe.enabled = selected.recipeAvailable;
             buttonList.add(recipe);
@@ -148,12 +149,13 @@ public class WorklistScreen extends WorklistGui {
             buttonList.add(new GuiButton(12, 192, 42, 50, 20, (tab == 2 ? "> " : "") + "All " + allSteps.size()));
             buttonList.add(
                 new GuiButton(2, 246, 42, Math.min(94, width - 258), 20, readyOnly ? "Ready only" : "All statuses"));
-            int queueWidth = (width - 32) / 3;
+            int queueWidth = Math.min(300, (listRight() - (splitPane() ? 28 : 32)) / (splitPane() ? 2 : 3));
+            int groupLeft = splitPane() ? 12 : 16 + queueWidth;
             if (!splitPane())
                 buttonList.add(new GuiButton(3, 12, 68, queueWidth, 20, showMissing ? "Work queue" : "Missing inputs"));
             GuiButton group = new GuiButton(
                 8,
-                16 + queueWidth,
+                groupLeft,
                 68,
                 queueWidth,
                 20,
@@ -163,7 +165,7 @@ public class WorklistScreen extends WorklistGui {
             buttonList.add(
                 new GuiButton(
                     9,
-                    20 + queueWidth * 2,
+                    groupLeft + queueWidth + 4,
                     68,
                     queueWidth,
                     20,
@@ -242,6 +244,11 @@ public class WorklistScreen extends WorklistGui {
         mc.displayGuiScreen(this);
         mc.displayGuiScreen(
             new InformationScreen(this, "Crafting result", java.util.Collections.singletonList(message)));
+    }
+
+    void recordCraftedInventory(ItemStack[] before, ItemStack[] after, WorklistPlan request) {
+        plan.recordCraftedInventory(before, after);
+        if (request != plan) request.recordCraftedInventory(before, after);
     }
 
     private void refresh() {
@@ -363,7 +370,7 @@ public class WorklistScreen extends WorklistGui {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         RenderHelper.disableStandardItemLighting();
         drawRect(0, 0, width, height, 0xf5101723);
-        line(selected == null ? "MACHINE WORKLIST" : selected.machine, 14, 14, width - 194, 0x67dbc4);
+        line(selected == null ? "WORKLIST" : selected.machine, 14, 14, width - 246, 0x67dbc4);
         String subtitle = selected == null
             ? (plan.groupId == -1 ? "Example: 8 crafting tables" : "NEI group " + plan.groupId)
                 + (CraftingInventory.backpack(parent) ? " / Inventory + open backpack" : " / Inventory + hotbar")
@@ -411,9 +418,9 @@ public class WorklistScreen extends WorklistGui {
                 0xa9b7cb);
         }
         line(
-            selected == null ? "G: craft group; Arrows + Enter: recipe; C: stock; Tab: controls."
-                : selected.crafting ? "F: one; G: chain; B: why; I: item; Tab: controls; Esc: back."
-                    : "N: NEI; B: why; C: stock; I: item; Enter: upstream.",
+            selected == null ? "H: help; G: group; C: stock; Arrows + Enter: recipe."
+                : selected.crafting ? "H: help; F: one; G: chain; B: why; Esc: back."
+                    : "H: help; N: NEI; B: why; C: stock; Enter: upstream.",
             14,
             height - 18,
             width - 28,
@@ -497,6 +504,10 @@ public class WorklistScreen extends WorklistGui {
 
     @Override
     protected void actionPerformed(GuiButton button) {
+        if (button.id == 13) {
+            mc.displayGuiScreen(new HelpScreen(this));
+            return;
+        }
         if (button.id == 8) {
             // Preserve the detail's scope if a last-moment inventory change completes its target.
             codechicken.nei.recipe.Recipe.RecipeId target = selected == null ? null : selected.id;
@@ -552,7 +563,7 @@ public class WorklistScreen extends WorklistGui {
         }
         if (button.id == 0) {
             if (selected == null) {
-                mc.displayGuiScreen(parent);
+                returnTo(parent);
                 return;
             }
             selected = null;
@@ -625,6 +636,10 @@ public class WorklistScreen extends WorklistGui {
     @Override
     protected void keyTyped(char character, int key) {
         if (focusKey(key)) return;
+        if (key == org.lwjgl.input.Keyboard.KEY_H) {
+            mc.displayGuiScreen(new HelpScreen(this));
+            return;
+        }
         if (key == org.lwjgl.input.Keyboard.KEY_B) {
             if (selected != null)
                 mc.displayGuiScreen(new InformationScreen(this, "Recipe status", new ArrayList<>(explanations)));
@@ -692,7 +707,7 @@ public class WorklistScreen extends WorklistGui {
             return;
         }
         if (key == 1) {
-            if (selected == null) mc.displayGuiScreen(parent);
+            if (selected == null) returnTo(parent);
             else {
                 selected = null;
                 scroll = 0;

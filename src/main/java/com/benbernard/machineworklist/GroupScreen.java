@@ -35,7 +35,7 @@ final class GroupScreen extends WorklistGui {
     public void initGui() {
         buttonList.clear();
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Back"));
-        buttonList.add(new GuiButton(1, 12, 42, 140, 20, "First-run help [H]"));
+        buttonList.add(new GuiButton(1, 12, 42, 140, 20, "Worklist help [H]"));
         buttonList.add(new GuiButton(2, 158, 42, 142, 20, "Example: 8 tables [E]"));
         groups.clear();
         labels.clear();
@@ -121,19 +121,8 @@ final class GroupScreen extends WorklistGui {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        if (button.id == 0) mc.displayGuiScreen(parent);
-        if (button.id == 1) mc.displayGuiScreen(
-            new InformationScreen(
-                this,
-                "First worklist",
-                Arrays.asList(
-                    "Try the example: return and press E. It plans a total of eight crafting tables using the current pack's real recipe. Tables already in inventory reduce the remaining work. It does not give you ingredients or change NEI bookmarks.",
-                    "For your own plan, search in NEI, press R on the target and choose the recipe you want. Hover the recipe's heart (Favorite) control and press Shift + your Bookmark key (A by default). Its hotkey tooltip says Save Recipe Tree. This creates an autocrafting group from the recipe and your chosen favorite ingredient recipes.",
-                    "New recipe trees already use Crafting Chain mode. For an ordinary bookmark group, right-click its bracket to toggle that mode; for the default ungrouped page, right-click the page header. Ctrl + mouse wheel over the target changes its quantity. Reopen the worklist to import changes.",
-                    "Open inventory for 2x2 recipes, or an actual crafting table/backpack for 3x3 recipes. Press the worklist key (F10 by default); choose a named group with arrows and Enter. A single group opens directly.",
-                    "Craft 1 batch (F) runs the selected recipe once. Craft chain (G) makes its selected upstream crafting ingredients, then continues toward the remaining target. From the queue, Craft group (G) advances every selected crafting recipe. Existing stock reduces work, shared inputs are checked again after every transfer, and machines are performed manually.",
-                    "A chain can make partial progress, then pause for missing inputs, machine operations, an incompatible grid or output space. Read the result, fix the blocker and start again. Escape closes the container and cancels further transfers. The mod uses only recipes already selected in the NEI group.",
-                    "Available stock (C) records outputs still available elsewhere, including inventory copies. Reduce records after consuming those items. This is not a lifetime production counter.")));
+        if (button.id == 0) returnTo(parent);
+        if (button.id == 1) mc.displayGuiScreen(new HelpScreen(this));
         if (button.id == 2) {
             try {
                 mc.displayGuiScreen(
@@ -153,7 +142,7 @@ final class GroupScreen extends WorklistGui {
     @Override
     protected void keyTyped(char character, int key) {
         if (focusKey(key)) return;
-        if (key == Keyboard.KEY_ESCAPE) mc.displayGuiScreen(parent);
+        if (key == Keyboard.KEY_ESCAPE) returnTo(parent);
         if (key == Keyboard.KEY_H) actionPerformed(new GuiButton(1, 0, 0, ""));
         if (key == Keyboard.KEY_E) actionPerformed(new GuiButton(2, 0, 0, ""));
         if (key == Keyboard.KEY_DOWN) move(1);
