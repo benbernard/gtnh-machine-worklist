@@ -6,7 +6,7 @@ Client-side machine work lists from an existing NEI autocrafting group, targetin
 
 ## Development status
 
-Beta for GTNH 2.8.4. Windows, Linux, and macOS CI exercise 33 automated checks. Live Windows gameplay verifies one-batch and bulk player-grid crafting, remaining-demand and ingredient limits, occupied-cursor/grid preservation, named group selection, visible keyboard focus, and available-stock editing. Earlier builds also passed a handheld Adventure Backpack transfer and a client-only EMBU connection. Three-column transfers, full-inventory handling, multiplayer crafting and wider platform gameplay still need live acceptance checks. See [validation](docs/validation.md) for exact revisions and coverage; a successful build is not a claim of full pack compatibility.
+Beta for GTNH 2.8.4. Windows, Linux, and macOS CI exercise 33 automated checks. Live Windows gameplay verifies one-batch and bulk player-grid and handheld Adventure Backpack crafting, true three-column transfers in a backpack and placed crafting table, remaining-demand and ingredient limits, full-inventory refusal/recovery, occupied-cursor/grid preservation, named group selection, visible keyboard focus, and available-stock editing. An earlier build also passed a client-only EMBU connection. Returned-tool recipes, worn/placed backpacks, multiplayer crafting and wider platform gameplay still need live acceptance checks. See [validation](docs/validation.md) for exact revisions and coverage; a successful build is not a claim of full pack compatibility.
 
 ## Use
 

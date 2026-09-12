@@ -2,6 +2,8 @@
 
 This is a test procedure, not a record of passed checks. Use the separate GTNH 2.8.4 Prism instance and disposable local world for item-giving commands.
 
+The [validation record](validation.md) now includes beta.1 handheld-backpack bulk crafting, full nine-slot fence transfers in backpack and placed table, incompatible-2x2 refusal, and full-inventory refusal/recovery. Retain these procedures for regression testing; do not treat them as still-unverified results. Remaining live coverage includes partially full output capacity, returned tools, NEI disabled, custom NEI group creation from scratch, mid-request cancellation/death, worn/placed backpacks, multiplayer and native Linux/macOS gameplay.
+
 ## Recorded steam-oven group
 
 The existing test-instance NEI group 16 targets 16 steam ovens. Its previously observed empty-inventory worklist contains 164 steel-plate bending runs, 32 wrought-iron-plate bending runs, and 16 assembler runs. These group numbers are local bookmarks, not built-in mod fixtures.
@@ -25,7 +27,7 @@ The existing test-instance NEI group 16 targets 16 steam ovens. Its previously o
 
 ## Manual completion
 
-- From a recipe detail, open Record completed (or press C). Set an exact output total and verify the queue and upstream input quantities shrink.
+- From a recipe detail, open Available stock (or press C). Set an exact output total and verify the queue and upstream input quantities shrink.
 - Complete half the remaining output; verify rounding to whole recipe batches, including odd batch counts and recipes producing multiple items per batch.
 - Pick up already-recorded output and confirm inventory does not count it twice. Inventory exceeding the recorded total should still count in full.
 - Close/reopen the worklist and restart the client; verify the same world/server and unchanged group restore progress. Another world or changed recipe selection must not inherit it.

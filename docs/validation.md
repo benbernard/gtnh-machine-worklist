@@ -10,7 +10,18 @@ The exact release JAR started and reopened the disposable world. Eight saved pis
 
 Mouse-wheel selection plus Enter opened the Steam Oven group. A waiting assembler explicitly named six missing steel casings and a reusable configuration-6 programmed circuit, with readable text at the small viewport. [Machine blocker capture](evidence/beta-machine-blockers.png). These checks supplement the earlier pass below; unverified cases remain listed explicitly.
 
-The updated public guide was observed after the Gitea deployment. Desktop/390px layouts, navigation, keyboard skip-to-download and all image assets were checked. Chrome's automation blocked the separate plain-text checksum and health URLs (`ERR_BLOCKED_BY_CLIENT`); those browser checks are not claimed as passing. CopyParty remained unauthenticated, so release evidence is published in this repository and the guide.
+The updated public guide was observed after the Gitea deployment. Desktop/390px layouts, navigation, keyboard skip-to-download and all image assets were checked. Chrome's automation blocked the separate plain-text checksum and health URLs (`ERR_BLOCKED_BY_CLIENT`); those browser checks are not claimed as passing. A subsequent HTTP artifact check downloaded the public JAR and matched the installed beta and all three CI artifacts to the SHA-256 above; `/healthz` returned `machineworklist-site ok`, and the checksum file matched. This was an artifact/deployment check, separate from computer-use gameplay. CopyParty remained unauthenticated, so release evidence is published in this repository and the guide.
+
+### Recovered final compatibility checks
+
+The audit was interrupted after these checks and before recording them here. Recovery reviewed the original tool actions and screenshots, including the selected recipe before each transfer, rather than relying only on the session's narrative. All used the exact beta.1 JAR identified above.
+
+- Handheld Adventure Backpack: one plank batch followed by five bulk batches converted its six stored logs into twelve planks. All six flint and ten unrelated cobblestone remained in storage, and the nine crafting positions were empty. [Original F2 result](evidence/beta-backpack-bulk.png).
+- The selected Oak Fence recipe filled all nine crafting slots: six sticks and three planks per fence. From the backpack, one batch consumed those quantities, with unrelated storage preserved and the crafting area empty afterward. [Original F2 result](evidence/beta-backpack-three-column.png).
+- The same ready fence recipe was refused from the player's 2x2 grid, with a visible instruction to open a 3x3 crafting table or supported backpack. [Original F2 blocker](evidence/beta-two-by-two-blocker.png).
+- Opening the recipe in NEI closed the original backpack container. The worklist then explained that it must be reopened before crafting; a stale container was not used.
+- A placed vanilla crafting table also completed one batch of the same full nine-slot fence recipe. The source-session screenshots show the selected fence recipe and the completed 1/1 result. This closes the earlier three-column transfer gap; it does not establish every backpack variant.
+- During recovery, clicking the readable upstream Oak Planks dependency opened its recipe and missing-log explanation. A normal save/exit and restart restored the readable 854x480 client viewport after fullscreen testing had left the window's rendering scale mismatched. Fullscreen transitions remain an environment limitation, not a passed compatibility check.
 
 All new interactive checks below were performed through computer use in the separate **Crafting Helper Test** Prism instance and disposable **New World**. Builds/package generation used Gradle; the repository's existing CI runs its automated suite on pushes. No production world or server inventory was changed.
 
@@ -27,9 +38,15 @@ All new interactive checks below were performed through computer use in the sepa
 
 The GUI-container entry guard fixes a subtle item-preservation issue: Minecraft closes and clears the old crafting GUI when another screen is displayed. The guard now explains an occupied cursor/grid over that original GUI instead of opening a replacement screen first.
 
+### Recovery-session full-inventory check
+
+The recovery pass independently tested the exact installed beta.1 through Computer Use. The eight-table example had seven tables, six flint and sixteen logs, with all 36 player slots occupied (27 temporary stacks of sixteen buckets plus the existing hotbar). The empty cursor and 2x2 grid isolated output capacity from the other guards. Both F and G refused the ready recipe and opened **Why crafting is unavailable**, explaining: **Player inventory is full. Free a slot for crafting transfers and returned tools.** [Blocker](evidence/beta-full-inventory-blocker.png) · [Unchanged inventory after both attempts](evidence/beta-full-inventory-preserved.png).
+
+The buckets were removed, preserving the original items. Reopening the same example enabled both actions and previewed one remaining batch. F completed 1/1: tables increased from seven to eight, flint decreased from six to four, and logs from sixteen to fourteen, with an empty grid. [Original F2 recovery result](evidence/beta-capacity-recovery.png). This establishes refusal, item preservation and recovery after freeing space; partially full capacity and returned-tool recipes remain separate live acceptance cases.
+
 ### Remaining beta acceptance coverage
 
-The following are not claimed as newly verified: a true three-column transfer; a full-inventory guard in gameplay; returned-tool crafting; bulk crafting in backpack variants; cancellation mid-request; death during crafting; multiplayer transfers/persistence; and Linux/macOS rendered gameplay. Earlier single-batch handheld-backpack and read-only multiplayer results below remain historical evidence. Complex fluids, chance outputs and cycles have synthetic coverage, not exhaustive live pack coverage. Screen-reader operation of the native Minecraft controls has not been established.
+The following are not claimed as newly verified: partial output-capacity limits in gameplay; returned-tool crafting; worn/placed backpack variants; cancellation mid-request; death during crafting; multiplayer transfers/persistence; and Linux/macOS rendered gameplay. The NEI-disabled guard and the entire custom-group creation walkthrough still require a dependable live input pass; the included example path passed. Handheld backpack bulk crafting, true three-column transfers and the full-inventory guard passed above. Earlier read-only multiplayer results below remain historical evidence. Complex fluids, chance outputs and cycles have synthetic coverage, not exhaustive live pack coverage. Screen-reader operation of the native Minecraft controls has not been established.
 
 The release is a **beta**, with these boundaries visible to users. The final release entry identifies its version and downloadable artifact; historical build hashes below refer only to the checks described beside them.
 
@@ -78,8 +95,8 @@ Checks use the separate Prism test instance, disposable **New World**, and a rea
 
 ## Outstanding acceptance checks from the earlier development pass
 
-- Complete a real one-batch transfer of a recipe requiring all three crafting columns. The tested table recipe fits 2x2, including when transferred through the backpack's 3x3 area.
-- Occupied grid/cursor preservation is now checked above. Full inventory and worn/placed backpack variants remain open; handheld storage accounting and cleanup passed on the earlier build.
+- The earlier three-column gap is closed by the beta fence transfers above in both a handheld backpack and a placed crafting table.
+- Occupied grid/cursor preservation and full-inventory refusal/recovery are checked above. Worn/placed backpack variants remain open; handheld storage accounting and cleanup also passed on beta.1.
 - Check tooltip placement at window edges and broader screen sizes.
 - Exercise death handling while the worklist is open on the latest build.
 - Validate larger actual GTNH groups, fluids, chance outputs and unavailable handlers beyond synthetic fixtures.
