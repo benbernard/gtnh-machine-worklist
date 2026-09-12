@@ -111,5 +111,22 @@ final class CraftingInventory {
         return (slot instanceof SlotCrafting || slot.inventory instanceof InventoryCrafting) && slot.getHasStack();
     }
 
+    static ItemStack[] containerSnapshot(GuiContainer gui) {
+        List<ItemStack> result = new ArrayList<>();
+        for (Slot slot : gui.inventorySlots.inventorySlots) {
+            ItemStack stack = slot.getStack();
+            result.add(stack == null ? null : stack.copy());
+        }
+        ItemStack cursor = gui.mc.thePlayer.inventory.getItemStack();
+        result.add(cursor == null ? null : cursor.copy());
+        return result.toArray(new ItemStack[0]);
+    }
+
+    static boolean sameSnapshot(ItemStack[] before, ItemStack[] after) {
+        if (before == null || before.length != after.length) return false;
+        for (int i = 0; i < before.length; i++) if (!ItemStack.areItemStacksEqual(before[i], after[i])) return false;
+        return true;
+    }
+
     private CraftingInventory() {}
 }

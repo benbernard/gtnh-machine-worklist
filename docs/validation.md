@@ -1,5 +1,11 @@
 # Validation record
 
+## Returned-tool settlement for 0.1.0-beta.6 — 2026-09-12
+
+The suite now has 71 checks. Seven new state-machine tests exercise quiet waits, late updates, bounded recovery, unknown-item refusal, fixed deadlines and latency bounds. Three new Forge/NEI fixtures cover real input versus mirror/storage/result slot boundaries, preserving tool damage/NBT, metadata-selected tool identity and snapshot changes. The [returned-tools plan](returned-tools-plan.md) explains the installed backpack's synchronization paths, deferred output verification and remaining acceptance checks.
+
+No computer use or live crafting was performed. The reported LV Cutting Machine chain with files/screwdrivers, actual backpack synchronization and transfers, and multiplayer latency remain unverified live. Automated state-machine and slot-mapping results are not server acknowledgments or proof of the reported gameplay flow. Running profiles receive a disabled staged update; closed profiles may be updated normally.
+
 ## Remembered navigation and current crafting grid for 0.1.0-beta.5 — 2026-09-12
 
 The suite now has 61 checks, adding navigation persistence/fallback and identity tests, plus container-selection and station-grid fixtures. The Tinkers' fixtures cover the three chest-dependent grid offsets in installed TConstruct 1.13.57-GTNH, distinguish attached storage from occupied crafting inputs/results, limit cleanup to the nine matrix slots, and reject closed container references. These fixtures load Minecraft and NEI classes without opening a game window or operating native input.

@@ -17,7 +17,28 @@ final class CraftingSession {
     private final long requested;
     private CraftingChain chain;
     private long completed;
-    private int cleanupWait;
+    private PendingTransfer pending;
+
+    private static final class PendingTransfer {
+
+        final WorklistPlan.Step step;
+        final net.minecraft.item.ItemStack[] before;
+        final int batches;
+        final boolean crafted;
+        final CraftingReturns returns;
+        final CraftingSettlement settlement;
+        net.minecraft.item.ItemStack[] observed;
+
+        PendingTransfer(WorklistPlan.Step step, net.minecraft.item.ItemStack[] before, int batches, boolean crafted,
+            CraftingReturns returns, int ping) {
+            this.step = step;
+            this.before = before;
+            this.batches = batches;
+            this.crafted = crafted;
+            this.returns = returns;
+            settlement = new CraftingSettlement(ping);
+        }
+    }
 
     private CraftingSession(WorklistScreen owner, GuiContainer container, WorklistPlan plan, RecipeId recipe,
         long count) {
@@ -74,19 +95,27 @@ final class CraftingSession {
     }
 
     private void advance() {
-        CraftingBurst.run(this::advanceBatch, System::nanoTime);
+        if (!validContainer()) return;
+        try {
+            if (pending != null) settleTransfer();
+            else CraftingBurst.run(this::advanceBatch, System::nanoTime);
+        } catch (RuntimeException failure) {
+            finish(
+                "Crafting stopped while returning tools. Inspect the grid/cursor: " + failure.getClass()
+                    .getSimpleName(),
+                true);
+        }
     }
 
-    private boolean waitForCleanup() {
-        if (completed == 0 || EntryFeedback.reasons(container)
-            .isEmpty()) return false;
-        if (++cleanupWait > 10) finish(
-            "The cursor or crafting grid did not clear after the transfer. Inspect its contents before retrying.",
-            true);
-        return true;
+    private int pingMillis() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.getNetHandler() != null)
+            for (net.minecraft.client.gui.GuiPlayerInfo player : mc.getNetHandler().playerInfoList)
+                if (player.name.equals(mc.thePlayer.getCommandSenderName())) return player.responseTime;
+        return 100;
     }
 
-    private boolean advanceBatch(int maximumBatches) {
+    private boolean validContainer() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.isDead || mc.thePlayer.getHealth() <= 0) {
             active = null;
@@ -96,9 +125,37 @@ final class CraftingSession {
             finish("Stopped because the crafting container changed or closed.", false);
             return false;
         }
-        // Server updates can briefly expose a transfer's intermediate cursor/grid state.
-        // Yield without clicks; persistent leftovers require the user's attention.
-        if (waitForCleanup()) return false;
+        return true;
+    }
+
+    private void settleTransfer() {
+        net.minecraft.item.ItemStack[] state = CraftingInventory.containerSnapshot(container);
+        boolean changed = !CraftingInventory.sameSnapshot(pending.observed, state);
+        pending.observed = state;
+        boolean blocked = !EntryFeedback.reasons(container)
+            .isEmpty();
+        CraftingSettlement.Action action = pending.settlement
+            .tick(changed, blocked, pending.returns.canRecover(container));
+        if (action == CraftingSettlement.Action.STOP) {
+            finish(
+                "Tool return did not settle. Check the cursor, bottom-right crafting grid and inventory space; "
+                    + "reopen the container if an item looks stuck. This transfer's output is unconfirmed; "
+                    + "reopening recalculates actual stock.",
+                true);
+        } else if (action == CraftingSettlement.Action.RECOVER) {
+            pending.returns.recover(container);
+        } else if (action == CraftingSettlement.Action.READY) {
+            PendingTransfer transfer = pending;
+            pending = null;
+            acceptTransfer(transfer, CraftingInventory.snapshot(container));
+        } else {
+            Minecraft.getMinecraft().ingameGUI
+                .func_110326_a("Returning crafting tools; waiting for inventory updates. Esc: stop.", false);
+        }
+    }
+
+    private boolean advanceBatch(int maximumBatches) {
+        if (!validContainer()) return false;
         if (chain == null && completed >= requested) {
             finish("Request complete.", true);
             return false;
@@ -111,7 +168,6 @@ final class CraftingSession {
                     CraftingInventory.snapshot(container),
                     step -> CraftingAvailability.inspect(container, step));
                 if (selection.next == null) {
-                    if (waitForCleanup()) return false;
                     finish(selection.stoppedReason(), true);
                     return false;
                 }
@@ -126,7 +182,6 @@ final class CraftingSession {
                 }
                 CraftingAvailability available = CraftingAvailability.inspect(container, current);
                 if (!available.reasons.isEmpty()) {
-                    if (waitForCleanup()) return false;
                     finish(available.reasons.get(0), true);
                     return false;
                 }
@@ -138,37 +193,23 @@ final class CraftingSession {
                 return false;
             }
             net.minecraft.item.ItemStack[] beforeInventory = CraftingInventory.snapshot(container);
-            long before = visibleOutput(current, beforeInventory);
+            CraftingReturns returns = new CraftingReturns(current.inputs);
             boolean crafted = CraftingInventory.craft(RecipeHandlerRef.of(current.id), container, batches);
-            net.minecraft.item.ItemStack[] afterInventory = CraftingInventory.snapshot(container);
-            int verified = CraftingBurst.verifiedBatches(
-                before,
-                visibleOutput(current, afterInventory),
-                current.outputs.get(0).factor,
-                batches);
-            if (verified < 0) {
-                finish(
-                    "The output change did not match the requested batches. Check the inventory before retrying.",
-                    true);
+            PendingTransfer transfer = new PendingTransfer(
+                current,
+                beforeInventory,
+                batches,
+                crafted,
+                returns,
+                pingMillis());
+            // Final and partially successful transfers need the same cleanup as intermediate ones.
+            // Ordinary empty-grid recipes retain the existing fast burst path.
+            if (returns.hasTools() || !EntryFeedback.reasons(container)
+                .isEmpty()) {
+                pending = transfer;
                 return false;
             }
-            completed += verified;
-            if (chain != null) chain.record(current.id, verified);
-            if (verified > 0) owner.recordCraftedInventory(beforeInventory, afterInventory, plan);
-            cleanupWait = 0;
-            if (!crafted || verified != batches) {
-                finish("NEI stopped before completing the transfer. Check the grid, inputs and output space.", true);
-                return false;
-            }
-            if (chain == null && completed >= requested) {
-                finish("Request complete.", true);
-                return false;
-            }
-            mc.ingameGUI.func_110326_a(
-                chain == null ? "Crafting " + completed + "/" + requested + " batches. Esc: stop."
-                    : "Chain: " + chain.completed + " batches / " + chain.craftedRecipes() + " recipes. Esc: stop.",
-                false);
-            return true;
+            return acceptTransfer(transfer, CraftingInventory.snapshot(container));
         } catch (RuntimeException failure) {
             finish(
                 "Crafting stopped. Check the container before retrying: " + failure.getClass()
@@ -176,6 +217,35 @@ final class CraftingSession {
                 true);
             return false;
         }
+    }
+
+    private boolean acceptTransfer(PendingTransfer transfer, net.minecraft.item.ItemStack[] afterInventory) {
+        WorklistPlan.Step current = transfer.step;
+        int verified = CraftingBurst.verifiedBatches(
+            visibleOutput(current, transfer.before),
+            visibleOutput(current, afterInventory),
+            current.outputs.get(0).factor,
+            transfer.batches);
+        if (verified < 0) {
+            finish("The output change did not match the requested batches. Check the inventory before retrying.", true);
+            return false;
+        }
+        completed += verified;
+        if (chain != null) chain.record(current.id, verified);
+        if (verified > 0) owner.recordCraftedInventory(transfer.before, afterInventory, plan);
+        if (!transfer.crafted || verified != transfer.batches) {
+            finish("NEI stopped before completing the transfer. Check the grid, inputs and output space.", true);
+            return false;
+        }
+        if (chain == null && completed >= requested) {
+            finish("Request complete.", true);
+            return false;
+        }
+        Minecraft.getMinecraft().ingameGUI.func_110326_a(
+            chain == null ? "Crafting " + completed + "/" + requested + " batches. Esc: stop."
+                : "Chain: " + chain.completed + " batches / " + chain.craftedRecipes() + " recipes. Esc: stop.",
+            false);
+        return true;
     }
 
     private long visibleOutput(WorklistPlan.Step step, net.minecraft.item.ItemStack[] inventory) {

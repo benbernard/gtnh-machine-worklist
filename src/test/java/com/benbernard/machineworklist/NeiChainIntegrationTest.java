@@ -61,6 +61,9 @@ public class NeiChainIntegrationTest {
             "backpackCleanupExcludesStorageAndSupplyExcludesMirrors",
             "stationStorageDoesNotBlockButMatrixAndResultDo",
             "closedContainerCannotOverrideTheCurrentTable",
+            "returnedBackpackToolsExcludeMirrorsStorageAndResult",
+            "returnedToolsPreserveDamageNbtAndRejectOtherToolTypes",
+            "settlementSnapshotDetectsToolDamageAndLateMirrors",
             "stationMappingTracksChestOffsetAndExcludesStorage",
             "navigationIdentityTracksRecipeChoicesAndQuantities",
             "navigationIdentityIgnoresInventoryAndRecordedProgress",
@@ -167,6 +170,73 @@ public class NeiChainIntegrationTest {
         for (net.minecraft.inventory.Slot slot : current.inventorySlots)
             assertFalse(CraftingInventory.occupiedCraftingSlot(currentGui, slot, current));
         assertEquals(1, closed.matrix.getStackInSlot(0).stackSize);
+    }
+
+    public void returnedBackpackToolsExcludeMirrorsStorageAndResult() {
+        ItemStack tool = new ItemStack(Items.iron_pickaxe);
+        BookmarkItem input = capacityOutput(tool, 0);
+        CraftingReturns returns = new CraftingReturns(Arrays.asList(input));
+        assertTrue(returns.hasTools());
+        net.minecraft.inventory.InventoryBasic inventory = new net.minecraft.inventory.InventoryBasic(
+            "Backpack",
+            false,
+            100);
+        List<net.minecraft.inventory.Slot> slots = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            inventory.setInventorySlotContents(i, tool.copy());
+            net.minecraft.inventory.Slot slot = new net.minecraft.inventory.Slot(inventory, i, 0, 0);
+            slot.slotNumber = i;
+            slots.add(slot);
+        }
+        List<net.minecraft.inventory.Slot> cleanup = returns.toolSlots(slots, true);
+        assertEquals(9, cleanup.size());
+        for (int i = 0; i < 100; i++) assertEquals(BackpackLayout.craftingStorage(i), cleanup.contains(slots.get(i)));
+        assertEquals(1, inventory.getStackInSlot(90).stackSize);
+        assertEquals(1, inventory.getStackInSlot(99).stackSize);
+        TableFixture table = new TableFixture(0);
+        table.matrix.setInventorySlotContents(0, tool.copy());
+        table.result.setInventorySlotContents(0, tool.copy());
+        table.storage.setInventorySlotContents(0, tool.copy());
+        assertEquals(Arrays.asList(table.getSlot(1)), returns.toolSlots(table.inventorySlots, false));
+        assertFalse(new CraftingReturns(Arrays.asList(capacityOutput(new ItemStack(Items.iron_ingot), 1))).hasTools());
+    }
+
+    public void returnedToolsPreserveDamageNbtAndRejectOtherToolTypes() {
+        ItemStack original = new ItemStack(Items.iron_pickaxe);
+        ItemStack used = original.copy();
+        used.setItemDamage(12);
+        used.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        used.getTagCompound()
+            .setString("owner", "fixture");
+        ItemStack saved = used.copy();
+        CraftingReturns returns = new CraftingReturns(Arrays.asList(capacityOutput(original, 0)));
+        assertTrue(returns.recognizes(used));
+        assertFalse(returns.recognizes(new ItemStack(Items.iron_axe)));
+        assertFalse(returns.recognizes(new ItemStack(Items.diamond)));
+        assertTrue(ItemStack.areItemStacksEqual(saved, used));
+        ItemStack setting = new ItemStack(Items.dye, 1, 4);
+        // Model a metadata-selected, damageable multi-tool inside this isolated Forge fixture.
+        Items.dye.setMaxDamage(100);
+        assertTrue(setting.isItemStackDamageable());
+        CraftingReturns configured = new CraftingReturns(Arrays.asList(capacityOutput(setting, 0)));
+        assertTrue(configured.recognizes(setting.copy()));
+        assertFalse(configured.recognizes(new ItemStack(Items.dye, 1, 5)));
+    }
+
+    public void settlementSnapshotDetectsToolDamageAndLateMirrors() {
+        ItemStack original = new ItemStack(Items.iron_pickaxe);
+        ItemStack changed = original.copy();
+        changed.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        changed.getTagCompound()
+            .setInteger("damage", 1);
+        assertFalse(CraftingInventory.sameSnapshot(null, new ItemStack[] { original }));
+        assertTrue(
+            CraftingInventory
+                .sameSnapshot(new ItemStack[] { original, null }, new ItemStack[] { original.copy(), null }));
+        assertFalse(CraftingInventory.sameSnapshot(new ItemStack[] { original }, new ItemStack[] { changed }));
+        assertFalse(
+            CraftingInventory.sameSnapshot(new ItemStack[] { original, null }, new ItemStack[] { original, changed }));
+        assertFalse(CraftingInventory.sameSnapshot(new ItemStack[] { original }, new ItemStack[] { original, null }));
     }
 
     public void stationMappingTracksChestOffsetAndExcludesStorage() {
