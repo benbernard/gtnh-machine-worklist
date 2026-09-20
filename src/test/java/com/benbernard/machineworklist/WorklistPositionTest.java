@@ -16,6 +16,18 @@ public class WorklistPositionTest {
     public TemporaryFolder temporary = new TemporaryFolder();
 
     @Test
+    public void explicitHoverOverridesSavedChainButGlobalEntryStillResumes() {
+        WorklistPosition saved = new WorklistPosition();
+        saved.group = 16;
+        assertFalse(saved.shouldResume(17));
+        assertTrue(saved.shouldResume(16));
+        assertTrue(saved.shouldResume(-1));
+        saved.group = -1; // Remembered example must not swallow a real hovered group.
+        assertFalse(saved.shouldResume(16));
+        assertTrue(saved.shouldResume(-1));
+    }
+
+    @Test
     public void restartRestoresRecipeFiltersAndBothScrollPositions() throws Exception {
         Path file = temporary.getRoot()
             .toPath()

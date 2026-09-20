@@ -17,6 +17,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     static net.minecraft.client.gui.GuiScreen pendingScreen;
     private boolean pendingOpen;
     private boolean pendingChoose;
+    private boolean pendingHover;
     private GuiContainer pendingGui;
     private int pendingTicks;
 
@@ -43,7 +44,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         if (pendingOpen) {
             pendingOpen = false;
             Minecraft mc = Minecraft.getMinecraft();
-            if (mc.currentScreen == pendingGui) open(pendingGui, pendingChoose);
+            if (mc.currentScreen == pendingGui) open(pendingGui, pendingChoose, pendingHover);
             else pendingTicks = 0;
         }
         if (pendingScreen == null) return;
@@ -57,7 +58,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
     public boolean lastKeyTyped(GuiContainer gui, char character, int key) {
         if (Keyboard.isRepeatEvent() || !isOpenKey(key)) return false;
         if (Minecraft.getMinecraft().currentScreen != gui) return false;
-        open(gui, net.minecraft.client.gui.GuiScreen.isShiftKeyDown());
+        open(gui, net.minecraft.client.gui.GuiScreen.isShiftKeyDown(), true);
         return true;
     }
 
@@ -88,9 +89,10 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
         pendingGui = (GuiContainer) mc.currentScreen;
         pendingTicks = 0;
         pendingChoose = net.minecraft.client.gui.GuiScreen.isShiftKeyDown();
+        pendingHover = false;
     }
 
-    private void open(GuiContainer gui, boolean chooseGroup) {
+    private void open(GuiContainer gui, boolean chooseGroup, boolean allowHover) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) return;
         GuiContainer active = CraftingInventory.activeGui(gui, mc.thePlayer.openContainer);
@@ -107,6 +109,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
                 pendingOpen = true;
                 pendingGui = gui;
                 pendingChoose = chooseGroup;
+                pendingHover = allowHover;
             } else {
                 pendingTicks = 0;
                 mc.thePlayer.addChatMessage(
@@ -126,9 +129,15 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
                 .displayGuiScreen(new GroupScreen(gui));
             return;
         }
+        BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
+        // Only an already-open container supplies an intentional pointer selection.
+        // Global F10 creates an inventory GUI underneath an arbitrary pointer position.
+        int group = allowHover ? ItemPanels.bookmarkPanel.getHoveredGroupId(false) : -1;
+        if (allowHover && group < 0) group = ItemPanels.bookmarkPanel.getHoveredGroupId(true);
+        if (group >= 0 && !grid.isCraftingMode(group)) group = -1;
         java.nio.file.Path file = navigationFile();
         WorklistPosition remembered = file == null ? null : WorklistPosition.load(file);
-        if (remembered != null) {
+        if (remembered != null && remembered.shouldResume(group)) {
             try {
                 BookmarkGrid current = ItemPanels.bookmarkPanel.getGrid();
                 WorklistPlan plan = remembered.group == -1
@@ -142,12 +151,11 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
             } catch (RuntimeException failure) {
                 // A deleted/changed recipe must not make remembered navigation block the picker.
             }
-            mc.displayGuiScreen(new GroupScreen(gui, "Saved chain unavailable here; choose a group."));
-            return;
+            if (group < 0) {
+                mc.displayGuiScreen(new GroupScreen(gui, "Saved chain unavailable here; choose a group."));
+                return;
+            }
         }
-        int group = ItemPanels.bookmarkPanel.getHoveredGroupId(false);
-        if (group < 0) group = ItemPanels.bookmarkPanel.getHoveredGroupId(true);
-        BookmarkGrid grid = ItemPanels.bookmarkPanel.getGrid();
         if (group < 0) {
             // A page with one crafting group has no ambiguous selection; also works
             // for keyboard users whose pointer is outside the bookmark panel.

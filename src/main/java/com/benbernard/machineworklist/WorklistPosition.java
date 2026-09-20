@@ -23,6 +23,11 @@ final class WorklistPosition {
     boolean readyOnly;
     boolean showMissing;
 
+    /** An explicit hovered crafting group takes priority over a different saved chain. */
+    boolean shouldResume(int hoveredGroup) {
+        return hoveredGroup < 0 || hoveredGroup == group;
+    }
+
     boolean matches(int groupId, String identity) {
         return group == groupId && !snapshot.isEmpty() && snapshot.equals(identity);
     }
