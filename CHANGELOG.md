@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Restore F10 selection of a hovered NEI crafting group even when another chain has a saved position. Preserve navigation for the same unchanged group, global F10 resume, and Shift+F10 group selection. Global entry ignores incidental pointer placement in its newly opened inventory.
+
 ## 0.1.0-beta.10
 
 - Prefer ready upstream recipes before downstream consumers so partial intermediate stock does not cause repeated small recipe switches. Continue bounded bulk transfers until remaining intermediate demand is met or production is blocked.
