@@ -14,7 +14,8 @@ import cpw.mods.fml.client.registry.ClientRegistry;
 
 public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
-    static net.minecraft.client.gui.GuiScreen pendingScreen;
+    private static net.minecraft.client.entity.EntityClientPlayerMP commandPlayer;
+    private static WorklistPlan commandPlan;
     private boolean pendingOpen;
     private boolean pendingChoose;
     private boolean pendingHover;
@@ -47,15 +48,39 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
             if (mc.currentScreen == pendingGui) open(pendingGui, pendingChoose, pendingHover);
             else pendingTicks = 0;
         }
-        if (pendingScreen == null) return;
-        net.minecraft.client.gui.GuiScreen screen = pendingScreen;
-        pendingScreen = null;
-        if (Minecraft.getMinecraft().thePlayer != null) Minecraft.getMinecraft()
-            .displayGuiScreen(screen);
+        if (commandPlayer == null) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        net.minecraft.client.entity.EntityClientPlayerMP expected = commandPlayer;
+        WorklistPlan plan = commandPlan;
+        commandPlayer = null;
+        commandPlan = null;
+        // GuiChat finishes closing before this tick. Never open a queued command in another session/screen.
+        if (mc.thePlayer != expected || mc.currentScreen != null) return;
+        GuiContainer inventory = openPlayerInventory(mc);
+        if (inventory != null && EntryFeedback.allow(inventory))
+            mc.displayGuiScreen(plan == null ? new GroupScreen(inventory) : new WorklistScreen(inventory, plan));
+    }
+
+    static void queueCommand(WorklistPlan plan) {
+        commandPlayer = Minecraft.getMinecraft().thePlayer;
+        commandPlan = plan;
+    }
+
+    static GuiContainer openPlayerInventory(Minecraft mc) {
+        if (mc.thePlayer == null || mc.thePlayer.isDead) return null;
+        // Close an orphaned server window before changing the client to window 0.
+        if (mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer) mc.thePlayer.closeScreen();
+        if (mc.thePlayer.openContainer != mc.thePlayer.inventoryContainer) return null;
+        net.minecraft.client.gui.inventory.GuiInventory inventory = new net.minecraft.client.gui.inventory.GuiInventory(
+            mc.thePlayer);
+        mc.displayGuiScreen(inventory);
+        return mc.currentScreen == inventory && mc.thePlayer.openContainer == inventory.inventorySlots ? inventory
+            : null;
     }
 
     @Override
     public boolean lastKeyTyped(GuiContainer gui, char character, int key) {
+        if (CraftingSession.blocksInput(gui)) return !closingKey(key);
         if (Keyboard.isRepeatEvent() || !isOpenKey(key)) return false;
         if (Minecraft.getMinecraft().currentScreen != gui) return false;
         open(gui, net.minecraft.client.gui.GuiScreen.isShiftKeyDown(), true);
@@ -84,9 +109,10 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
             || mc.thePlayer == null
             || mc.thePlayer.isDead) return;
         // Always create a fresh, real inventory GUI; a closed table/backpack cannot be reused.
-        mc.displayGuiScreen(new net.minecraft.client.gui.inventory.GuiInventory(mc.thePlayer));
+        GuiContainer inventory = openPlayerInventory(mc);
+        if (inventory == null) return;
         pendingOpen = true;
-        pendingGui = (GuiContainer) mc.currentScreen;
+        pendingGui = inventory;
         pendingTicks = 0;
         pendingChoose = net.minecraft.client.gui.GuiScreen.isShiftKeyDown();
         pendingHover = false;
@@ -204,7 +230,11 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
     @Override
     public boolean keyTyped(GuiContainer gui, char character, int key) {
-        return false;
+        return CraftingSession.blocksInput(gui) && !closingKey(key);
+    }
+
+    private static boolean closingKey(int key) {
+        return key == Keyboard.KEY_ESCAPE || key == Minecraft.getMinecraft().gameSettings.keyBindInventory.getKeyCode();
     }
 
     @Override
@@ -212,7 +242,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
     @Override
     public boolean mouseClicked(GuiContainer gui, int x, int y, int button) {
-        return false;
+        return CraftingSession.blocksInput(gui);
     }
 
     @Override
@@ -223,7 +253,7 @@ public class ClientProxy extends CommonProxy implements IContainerInputHandler {
 
     @Override
     public boolean mouseScrolled(GuiContainer gui, int x, int y, int delta) {
-        return false;
+        return CraftingSession.blocksInput(gui);
     }
 
     @Override

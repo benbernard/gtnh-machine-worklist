@@ -39,6 +39,8 @@ final class CraftingAvailability {
             result.reasons.add("Recipe unavailable. Choose its recipe again in NEI and reopen the group.");
         if (!NEIClientConfig.autocraftingEnabled())
             result.reasons.add("NEI autocrafting is off. Enable Autocrafting in NEI Options > Inventory.");
+        if (!NEIClientConfig.hasSMPCounterPart())
+            result.reasons.add("Waiting for NEI's server connection before inventory synchronization is available.");
         if (AutoCraftingManager.processing())
             result.reasons.add("NEI is already crafting. Wait for it to finish before starting another request.");
         if (!(parent instanceof GuiContainer)) {
@@ -46,7 +48,7 @@ final class CraftingAvailability {
             return result;
         }
         GuiContainer gui = (GuiContainer) parent;
-        if (mc.thePlayer.openContainer != gui.inventorySlots) {
+        if (!CraftingInventory.usableFrom(gui, mc.currentScreen, mc.thePlayer)) {
             result.reasons.add("The original container has closed. Reopen it and press the worklist key again.");
             return result;
         }

@@ -4,7 +4,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
@@ -53,13 +52,7 @@ public class WorklistCommand extends CommandBase {
             if (grid.isCraftingMode(group)) groups.add(group);
         }
         if (arguments.length == 0) {
-            GuiInventory inventory = new GuiInventory(mc.thePlayer);
-            net.minecraft.client.gui.ScaledResolution resolution = new net.minecraft.client.gui.ScaledResolution(
-                mc,
-                mc.displayWidth,
-                mc.displayHeight);
-            inventory.setWorldAndResolution(mc, resolution.getScaledWidth(), resolution.getScaledHeight());
-            ClientProxy.pendingScreen = new GroupScreen(inventory);
+            ClientProxy.queueCommand(null);
             return;
         }
         int group;
@@ -75,14 +68,6 @@ public class WorklistCommand extends CommandBase {
             return;
         }
         // GuiChat closes itself after executing a command; open on the following client tick.
-        GuiInventory inventory = new GuiInventory(mc.thePlayer);
-        net.minecraft.client.gui.ScaledResolution resolution = new net.minecraft.client.gui.ScaledResolution(
-            mc,
-            mc.displayWidth,
-            mc.displayHeight);
-        // NEI checks the parent GUI's Minecraft reference when inspecting usable slots.
-        // A command-created inventory has not yet been displayed/initialized by Minecraft.
-        inventory.setWorldAndResolution(mc, resolution.getScaledWidth(), resolution.getScaledHeight());
-        ClientProxy.pendingScreen = new WorklistScreen(inventory, WorklistPlan.capture(grid, group));
+        ClientProxy.queueCommand(WorklistPlan.capture(grid, group));
     }
 }

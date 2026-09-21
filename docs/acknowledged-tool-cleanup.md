@@ -1,10 +1,12 @@
 # Acknowledged tool cleanup
 
+This document describes the earlier cleanup implementation. The [September 2026 multiplayer audit](multiplayer-crafting-sync.md) replaces its one-tick acknowledgment gate, mirror refresh and extra tool recovery.
+
 ## Source comparison
 
 The main Prism GTNH 2.8.4 profile uses NotEnoughItems 2.8.44-GTNH, not JEI, and Adventure Backpack 1.3.13-GTNH. NEI's `DefaultOverlayHandler.craft` fills a batch, shift-clicks the output and clears ingredients using ordinary vanilla window clicks. The backpack overlay inherits that cleanup. Our overlays already use the same algorithm with explicit real grid/storage boundaries.
 
-The additional delay was in our wrapper: after receiving transfer acknowledgments it waited another 3–40 client ticks for the entire container to stop changing before recovering leftovers. At a reported 100 ms ping this was six ticks (about 300 ms at 20 TPS), restarting on unrelated inventory changes. This is a code-derived delay, not a measured overall speedup.
+The additional delay was in our wrapper: after receiving transfer acknowledgments it waited another 3Ã¢â‚¬â€œ40 client ticks for the entire container to stop changing before recovering leftovers. At a reported 100 ms ping this was six ticks (about 300 ms at 20 TPS), restarting on unrelated inventory changes. This is a code-derived delay, not a measured overall speedup.
 
 ## Implementation
 

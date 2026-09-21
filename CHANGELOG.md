@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Wait for vanilla to apply every click acknowledgment, then request and apply a full server inventory/cursor refresh before verifying output or continuing. Refresh before the first transfer as well.
+- Use NEI's own crafting cleanup. Remove extra tool-recovery clicks and client-side backpack-mirror writes. Leave the real container open after completion or a synchronization failure.
+- Preserve NEI's real container return target. Reject stale or hidden container references. World/command entry opens a fresh player inventory and closes any orphaned server window first.
+- Wait for confirmed overflow moves before crafting. Cancel on player/connection changes, timeout, rejection or competing input. Add packet-queue and GUI lifecycle regression fixtures.
+
 - Restore F10 selection of a hovered NEI crafting group even when another chain has a saved position. Preserve navigation for the same unchanged group, global F10 resume, and Shift+F10 group selection. Global entry ignores incidental pointer placement in its newly opened inventory.
 
 ## 0.1.0-beta.10
@@ -40,7 +45,7 @@
 - F10 or Close exits the entire worklist from recipe details, stock, help and status without backing out. Escape/Back remains single-level navigation; details have a separate Back to queue button.
 - Shift+F10 opens the group picker. F10 from the world creates a fresh player inventory; reopening always reimports the plan and checks current inventory/container state.
 - Changed or missing groups fall back to the picker. Completed recipe details return to the queue; malformed navigation files do not block use.
-- Recognize Tinkers' Crafting Station grid slots separately from attached chest storage, which no longer causes a false occupied-grid warning. Resolve the shifted 3×3 grid for every preview/transfer and restrict supplies to the player inventory used by the plan.
+- Recognize Tinkers' Crafting Station grid slots separately from attached chest storage, which no longer causes a false occupied-grid warning. Resolve the shifted 3Ãƒâ€”3 grid for every preview/transfer and restrict supplies to the player inventory used by the plan.
 - Use the currently active container when opening, reject stale container references, identify the grid in the queue and make backpack entry warnings specific to its crafting area.
 
 ## 0.1.0-beta.4

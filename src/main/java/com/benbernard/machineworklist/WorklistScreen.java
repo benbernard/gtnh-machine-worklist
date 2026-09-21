@@ -13,7 +13,6 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import codechicken.nei.bookmark.BookmarkItem;
-import codechicken.nei.recipe.GuiCraftingRecipe;
 import codechicken.nei.recipe.StackInfo;
 
 /** Machine queue with a separate scrollable recipe detail view. */
@@ -30,7 +29,6 @@ public class WorklistScreen extends WorklistGui {
     private CraftingAvailability crafting;
     private CraftingChain chainPreview;
     private CraftingChain.Selection chainSelection;
-    private String notice;
     private boolean initialTab = true;
     private WorklistPlan.Step selected;
     private ItemStack[] previousInventory;
@@ -230,7 +228,6 @@ public class WorklistScreen extends WorklistGui {
 
     private void explainSelection() {
         explanations.clear();
-        if (notice != null) explanations.add(notice);
         if (selected == null) return;
         if (!selected.recipeAvailable) explanations
             .add("Recipe unavailable in NEI. Choose the recipe again in your bookmarks and reopen this group.");
@@ -296,13 +293,6 @@ public class WorklistScreen extends WorklistGui {
                     + " batches, then continue with the next ready recipe.");
             else explanations.addAll(chainSelection.reasons);
         }
-    }
-
-    void craftingFinished(String message) {
-        notice = message;
-        mc.displayGuiScreen(this);
-        mc.displayGuiScreen(
-            new InformationScreen(this, "Crafting result", java.util.Collections.singletonList(message)));
     }
 
     void recordCraftedInventory(ItemStack[] before, ItemStack[] after, WorklistPlan request) {
@@ -657,7 +647,7 @@ public class WorklistScreen extends WorklistGui {
                             "Choose this recipe again in NEI, then reopen the group. The saved recipe no longer resolves in the current pack.")));
                 return;
             }
-            GuiCraftingRecipe.openRecipeGui("recipeId", selected.id.getResult(), selected.id);
+            openRecipe("recipeId", selected.id.getResult(), selected.id);
             return;
         }
         scroll = 0;

@@ -33,6 +33,14 @@ abstract class WorklistGui extends GuiScreen {
 
     protected abstract GuiScreen parentScreen();
 
+    final net.minecraft.client.gui.inventory.GuiContainer rootContainer() {
+        GuiScreen parent = parentScreen();
+        while (parent instanceof WorklistGui) parent = ((WorklistGui) parent).parentScreen();
+        return parent instanceof net.minecraft.client.gui.inventory.GuiContainer
+            ? (net.minecraft.client.gui.inventory.GuiContainer) parent
+            : null;
+    }
+
     protected void closeWorklist() {
         GuiScreen destination = parentScreen();
         while (destination instanceof WorklistGui) destination = ((WorklistGui) destination).parentScreen();
@@ -40,10 +48,14 @@ abstract class WorklistGui extends GuiScreen {
     }
 
     protected void returnTo(GuiScreen parent) {
-        if (parent instanceof net.minecraft.client.gui.inventory.GuiContainer && (mc.thePlayer == null
-            || mc.thePlayer.openContainer != ((net.minecraft.client.gui.inventory.GuiContainer) parent).inventorySlots))
-            mc.displayGuiScreen(null);
-        else mc.displayGuiScreen(parent);
+        if (mc.currentScreen != this) return;
+        if (parent instanceof net.minecraft.client.gui.inventory.GuiContainer
+            && (mc.thePlayer == null || !CraftingInventory
+                .usableFrom((net.minecraft.client.gui.inventory.GuiContainer) parent, this, mc.thePlayer))) {
+            // Leaving a stale worklist must also close the server window, not just hide its GUI.
+            if (mc.thePlayer != null) mc.thePlayer.closeScreen();
+            else mc.displayGuiScreen(null);
+        } else mc.displayGuiScreen(parent);
     }
 
     protected boolean focusKey(int key) {
@@ -99,7 +111,27 @@ abstract class WorklistGui extends GuiScreen {
     }
 
     protected void openItemRecipe(ItemStack stack) {
-        if (stack != null) codechicken.nei.recipe.GuiCraftingRecipe.openRecipeGui("item", stack.copy());
+        if (stack != null) openRecipe("item", stack.copy());
+    }
+
+    protected void openRecipe(String type, Object... arguments) {
+        net.minecraft.client.gui.inventory.GuiContainer original = recipeReturnTarget(mc.thePlayer, mc.currentScreen);
+        if (original == null) {
+            if (mc.thePlayer != null) mc.thePlayer.addChatMessage(
+                new net.minecraft.util.ChatComponentText(
+                    "The original crafting container is closed. Open your inventory or table, then F10."));
+            return;
+        }
+        // Give NEI its normal real-container parent. Escape/Back then restores that window and resyncs it.
+        mc.displayGuiScreen(original);
+        if (mc.currentScreen == original && EntryFeedback.allow(original))
+            codechicken.nei.recipe.GuiCraftingRecipe.openRecipeGui(type, arguments);
+    }
+
+    final net.minecraft.client.gui.inventory.GuiContainer recipeReturnTarget(
+        net.minecraft.entity.player.EntityPlayer player, GuiScreen screen) {
+        net.minecraft.client.gui.inventory.GuiContainer original = rootContainer();
+        return CraftingInventory.usableFrom(original, screen, player) ? original : null;
     }
 
     protected List<String> itemInformation(ItemStack stack) {

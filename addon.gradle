@@ -1,3 +1,5 @@
 tasks.named('test') {
     systemProperty 'worklist.testClasspath', sourceSets.test.runtimeClasspath.asPath
+    // The integration fixtures use isolated Forge classloaders; keep the expanded suite within its heap.
+    maxHeapSize = '2g'
 }

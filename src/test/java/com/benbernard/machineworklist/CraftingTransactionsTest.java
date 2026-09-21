@@ -16,6 +16,12 @@ public class CraftingTransactionsTest {
         batch.seal();
         assertFalse(batch.finished());
         batch.confirmed((short) 25, true);
+        assertTrue(batch.finished());
+        assertFalse(batch.ready());
+        assertTrue(batch.requestSnapshot());
+        batch.contentsApplied();
+        assertFalse(batch.ready());
+        batch.cursorApplied();
         assertTrue(batch.ready());
     }
 
@@ -40,6 +46,36 @@ public class CraftingTransactionsTest {
         batch.confirmed(Short.MIN_VALUE, true);
         assertFalse(batch.ready());
         batch.seal();
+        assertTrue(batch.requestSnapshot());
+        batch.contentsApplied();
+        batch.cursorApplied();
         assertTrue(batch.ready());
+    }
+
+    @Test
+    public void unrelatedSnapshotsAndCursorBeforeRequestDoNotCompleteBatch() {
+        CraftingTransactions.Batch batch = new CraftingTransactions.Batch();
+        batch.contentsApplied();
+        batch.cursorApplied();
+        batch.seal();
+        assertTrue(batch.requestSnapshot());
+        assertFalse(batch.ready());
+        batch.cursorApplied();
+        assertFalse(batch.ready());
+        batch.contentsApplied();
+        batch.cursorApplied();
+        assertTrue(batch.ready());
+        assertFalse(batch.requestSnapshot());
+    }
+
+    @Test
+    public void lateClickCancelsAccountingAndNeverRequestsAnotherSnapshot() {
+        CraftingTransactions.Batch batch = new CraftingTransactions.Batch();
+        batch.seal();
+        batch.sent((short) 99);
+        assertTrue(batch.rejected());
+        batch.confirmed((short) 99, true);
+        assertFalse(batch.requestSnapshot());
+        assertFalse(batch.ready());
     }
 }

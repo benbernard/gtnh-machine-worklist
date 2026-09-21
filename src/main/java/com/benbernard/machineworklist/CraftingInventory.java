@@ -33,7 +33,11 @@ final class CraftingInventory {
     }
 
     static boolean craft(codechicken.nei.recipe.RecipeHandlerRef handler, GuiContainer gui, int batches) {
-        if (batches < 1 || batches > CraftingBurst.MAX_BATCHES) return false;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (batches < 1 || batches > CraftingBurst.MAX_BATCHES
+            || handler == null
+            || mc.currentScreen != gui
+            || !usableFrom(gui, mc.currentScreen, mc.thePlayer)) return false;
         if (station(gui)) return handler.getOverlayHandler(gui) != null
             && new StationCraftingOverlay(gui.inventorySlots).craft(gui, handler.handler, handler.recipeIndex, batches);
         if (!backpack(gui)) return handler.craft(gui, batches);
@@ -61,6 +65,17 @@ final class CraftingInventory {
         if (!(screen instanceof GuiContainer)) return null;
         GuiContainer gui = (GuiContainer) screen;
         return active != null && gui.inventorySlots == active ? gui : null;
+    }
+
+    /** A remembered GUI is not authority to reopen its container or use a hidden backpack. */
+    static boolean usableFrom(GuiContainer gui, GuiScreen screen, net.minecraft.entity.player.EntityPlayer player) {
+        if (gui == null || player == null
+            || player.isDead
+            || gui instanceof codechicken.nei.recipe.GuiRecipe
+            || gui.inventorySlots != player.openContainer) return false;
+        if (gui instanceof net.minecraft.client.gui.inventory.GuiInventory
+            && gui.inventorySlots != player.inventoryContainer) return false;
+        return screen == gui || screen instanceof WorklistGui && ((WorklistGui) screen).rootContainer() == gui;
     }
 
     static boolean station(GuiContainer gui) {
@@ -111,23 +126,6 @@ final class CraftingInventory {
 
     static boolean occupiedGridSlot(Slot slot) {
         return (slot instanceof SlotCrafting || slot.inventory instanceof InventoryCrafting) && slot.getHasStack();
-    }
-
-    static ItemStack[] containerSnapshot(GuiContainer gui) {
-        List<ItemStack> result = new ArrayList<>();
-        for (Slot slot : gui.inventorySlots.inventorySlots) {
-            ItemStack stack = slot.getStack();
-            result.add(stack == null ? null : stack.copy());
-        }
-        ItemStack cursor = gui.mc.thePlayer.inventory.getItemStack();
-        result.add(cursor == null ? null : cursor.copy());
-        return result.toArray(new ItemStack[0]);
-    }
-
-    static boolean sameSnapshot(ItemStack[] before, ItemStack[] after) {
-        if (before == null || before.length != after.length) return false;
-        for (int i = 0; i < before.length; i++) if (!ItemStack.areItemStacksEqual(before[i], after[i])) return false;
-        return true;
     }
 
     private CraftingInventory() {}
