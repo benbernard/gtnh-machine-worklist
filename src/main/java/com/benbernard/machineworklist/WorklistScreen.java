@@ -178,8 +178,14 @@ public class WorklistScreen extends WorklistGui {
         buttonList.add(new GuiButton(6, width - 170, 10, 96, 20, "Stock [C]"));
         buttonList.add(new GuiButton(0, width - 68, 10, 56, 20, "Close"));
         if (selected != null) {
-            buttonList.add(new GuiButton(14, 12, 68, 140, 20, "Back to queue [Esc]"));
             int buttonWidth = Math.min(300, (width - 32) / 3);
+            buttonList.add(new GuiButton(14, 12, 68, buttonWidth, 20, "Back to queue [Esc]"));
+            GuiButton complete = new GuiButton(15, 16 + buttonWidth, 68, buttonWidth, 20, "Mark complete");
+            complete.enabled = error == null && !CraftingSession.running();
+            buttonList.add(complete);
+            GuiButton reset = new GuiButton(16, 20 + buttonWidth * 2, 68, buttonWidth, 20, "Reset");
+            reset.enabled = error == null && !CraftingSession.running();
+            buttonList.add(reset);
             GuiButton recipe = new GuiButton(4, 12, 42, buttonWidth, 20, "NEI recipe [N]");
             recipe.enabled = selected.recipeAvailable;
             buttonList.add(recipe);
@@ -567,6 +573,20 @@ public class WorklistScreen extends WorklistGui {
 
     @Override
     protected void actionPerformed(GuiButton button) {
+        if (button.id == 15 || button.id == 16) {
+            if (CraftingSession.running()) return;
+            refresh();
+            if (selected != null && error == null) {
+                try {
+                    plan.setRecipeCompleted(selected, availableInventory(), button.id == 15);
+                    refresh();
+                } catch (RuntimeException failure) {
+                    error = "Could not update progress: " + failure.getMessage();
+                }
+            }
+            buttons();
+            return;
+        }
         if (button.id == 13) {
             mc.displayGuiScreen(new HelpScreen(this));
             return;

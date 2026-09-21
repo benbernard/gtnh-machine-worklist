@@ -130,6 +130,34 @@ public final class WorklistPlan {
         return amount;
     }
 
+    /** Update every output of a displayed recipe as one persisted stock change. */
+    void setRecipeCompleted(Step step, ItemStack[] inventory, boolean complete) {
+        Map<String, Long> previous = new LinkedHashMap<>(completed);
+        Map<String, Long> visible = inventoryTotals(inventory);
+        Map<String, Long> amounts = new LinkedHashMap<>();
+        for (BookmarkItem output : step.outputs) {
+            String key = outputKey(output);
+            amounts.put(key, Math.addExact(amounts.getOrDefault(key, 0L), output.amount));
+        }
+        try {
+            for (Map.Entry<String, Long> entry : amounts.entrySet()) {
+                String key = entry.getKey();
+                if (complete) completed.put(
+                    key,
+                    Math.addExact(
+                        Math.max(visible.getOrDefault(key, 0L), previous.getOrDefault(key, 0L)),
+                        entry.getValue()));
+                else completed.remove(key);
+            }
+            saveProgress();
+            progressWarning = null;
+        } catch (RuntimeException failure) {
+            completed.clear();
+            completed.putAll(previous);
+            throw failure;
+        }
+    }
+
     void setCompleted(BookmarkItem output, long amount) {
         if (amount < 0) throw new IllegalArgumentException("Enter a non-negative whole quantity.");
         String key = outputKey(output);

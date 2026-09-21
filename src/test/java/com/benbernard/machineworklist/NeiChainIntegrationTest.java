@@ -39,6 +39,7 @@ public class NeiChainIntegrationTest {
     @Parameterized.Parameters(name = "{0}")
     public static List<String> fixtures() {
         return Arrays.asList(
+            "recipeCompletionCreditsInventoryAndResets",
             "auditAcknowledgmentBeforeDelayedSlots",
             "auditAcknowledgmentBeforeQueuedPacketsApplied",
             "auditRecipeReturnRestoresRealContainer",
@@ -1203,6 +1204,23 @@ public class NeiChainIntegrationTest {
         assertEquals(3, inventory[0].stackSize);
         plan.setCompleted(output, 0);
         assertEquals(8, runs(plan.remainingChain(new ItemStack[0]), component));
+    }
+
+    public void recipeCompletionCreditsInventoryAndResets() throws Exception {
+        List<BookmarkItem> chain = new ArrayList<>();
+        RecipeId target = recipe(chain, "target", Items.diamond, 3, 5, Items.gold_ingot, 2);
+        cacheHandler(target, new MachineRecipeHandler(new ItemStack(Items.diamond)));
+        WorklistPlan plan = new WorklistPlan(1, chain);
+        ItemStack[] inventory = { new ItemStack(Items.diamond, 3) };
+        WorklistPlan.Step step = plan.calculate(inventory)
+            .get(0);
+        plan.setRecipeCompleted(step, inventory, true);
+        assertEquals(15, plan.completed(step.outputs.get(0)));
+        assertEquals(0, runs(plan.remainingChain(inventory), target));
+        plan.setRecipeCompleted(step, inventory, false);
+        assertEquals(0, plan.completed(step.outputs.get(0)));
+        assertEquals(4, runs(plan.remainingChain(inventory), target));
+        assertEquals(3, inventory[0].stackSize);
     }
 
     public void manualHalfCompletionRoundsBatchesAndCanBeUndone() {
