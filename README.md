@@ -47,6 +47,16 @@ See [validation notes](docs/validation.md) for tested cases and outstanding chec
 - Produce the same portable mod JAR on Windows, Linux, and macOS, using the checked-in Gradle wrappers and pinned build dependencies.
 - Verify complex chains with automated tests and the separate GTNH test instance; record evidence and remaining gaps rather than treating a successful compilation as gameplay verification.
 
+## macOS mouse wheel fix
+
+Machine Worklist includes a client-only backport of [lwjgl3ify's discrete scrolling fix](https://github.com/GTNewHorizons/lwjgl3ify/pull/251) for the lwjgl3ify 2.1.16 shipped with GTNH 2.8.4. It is enabled by default on macOS. Each nonzero wheel event becomes one scroll step after direction inversion and sensitivity scaling. This prevents small wheel events from being discarded while selecting hotbar slots or scrolling menus. It does not change camera movement.
+
+Install this combined JAR in place of the previous Machine Worklist JAR, then restart Minecraft. Keep only one Machine Worklist JAR in the instance. No server mod or lwjgl3ify update is required. The startup log prints `Enabled discrete wheel scrolling` when the patch applies.
+
+To disable it, add `-Dmachineworklist.discreteScrolling=false` to the instance's Java arguments and restart. This can be useful for trackpad scrolling. Set the same property to `true` to opt in on another operating system. A newer lwjgl3ify with its own discrete scrolling implementation is left to its own configuration.
+
+Automated tests execute the wheel method from lwjgl3ify 2.1.16 with its event queue, covering small deltas, direction changes, inversion, sensitivity and zero input. Native window initialization is excluded from this test. Physical mouse testing in Minecraft is still pending.
+
 ## Build
 
 Install a JDK 25 and set JAVA_HOME to it. The GTNH build tools provision compilation toolchains as needed. The mod will target Java 8 bytecode for use with the pack's Java 8 and modern-Java distributions.

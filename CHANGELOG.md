@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a macOS wheel scrolling backport for lwjgl3ify 2.1.16. Each wheel event produces one step; Java arguments can disable the fix.
+
 - Wait for vanilla to apply every click acknowledgment, then request and apply a full server inventory/cursor refresh before verifying output or continuing. Refresh before the first transfer as well.
 - Use NEI's own crafting cleanup. Remove extra tool-recovery clicks and client-side backpack-mirror writes. Leave the real container open after completion or a synchronization failure.
 - Preserve NEI's real container return target. Reject stale or hidden container references. World/command entry opens a fresh player inventory and closes any orphaned server window first.
